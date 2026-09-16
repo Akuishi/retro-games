@@ -1,0 +1,3006 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Ретро Игры</title>
+<style>
+    :root {
+        --bg: #000; --bg-container: #111; --border: #fff; --text: #fff; --text-dark: #000;
+        --grid-bg: #222; --cell-border: #444;
+        --shadow: rgba(255,255,255,0.3); --shadow-strong: rgba(255,255,255,0.5);
+        --tile-2: #222; --tile-4: #333; --tile-8: #444; --tile-16: #555;
+        --tile-32: #666; --tile-64: #777; --tile-128: #888; --tile-256: #999;
+        --tile-512: #aaa; --tile-1024: #ccc; --tile-2048: #fff;
+        --tile-text-light: #fff; --tile-text-dark: #000;
+        --tile-border-color: rgba(255,255,255,0.4);
+        --mh-tile-bg: #000; --mh-tile-border: #444; --mh-flipped-bg: #fff; --mh-symbol-color: #000;
+    }
+    body[data-theme="inverse"] {
+        --bg: #fff; --bg-container: #eee; --border: #000; --text: #000; --text-dark: #fff;
+        --grid-bg: #ddd; --cell-border: #bbb;
+        --shadow: rgba(0,0,0,0.3); --shadow-strong: rgba(0,0,0,0.5);
+        --tile-2: #ddd; --tile-4: #ccc; --tile-8: #bbb; --tile-16: #aaa;
+        --tile-32: #999; --tile-64: #888; --tile-128: #777; --tile-256: #666;
+        --tile-512: #555; --tile-1024: #333; --tile-2048: #000;
+        --tile-text-light: #000; --tile-text-dark: #fff;
+        --tile-border-color: rgba(0,0,0,0.4);
+        --mh-tile-bg: #fff; --mh-tile-border: #bbb; --mh-flipped-bg: #000; --mh-symbol-color: #fff;
+    }
+    body[data-theme="yellow"] {
+        --bg: #f5e6a8; --bg-container: #e8d68f; --border: #000; --text: #000; --text-dark: #f5e6a8;
+        --grid-bg: #e0cc70; --cell-border: #b8a050;
+        --shadow: rgba(0,0,0,0.3); --shadow-strong: rgba(0,0,0,0.5);
+        --tile-2: #e0cc70; --tile-4: #d4be58; --tile-8: #c8b040; --tile-16: #bca228;
+        --tile-32: #b09418; --tile-64: #a08610; --tile-128: #907810; --tile-256: #806a10;
+        --tile-512: #705c10; --tile-1024: #504008; --tile-2048: #000;
+        --tile-text-light: #000; --tile-text-dark: #f5e6a8;
+        --tile-border-color: rgba(0,0,0,0.4);
+        --mh-tile-bg: #e8d68f; --mh-tile-border: #000; --mh-flipped-bg: #000; --mh-symbol-color: #f5e6a8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Consolas', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
+        font-weight: bold; background: var(--bg); color: var(--text);
+        min-height: 100vh; display: flex; justify-content: center; align-items: center;
+        padding: 10px; touch-action: manipulation; user-select: none;
+        -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    .container { background: var(--bg-container); border: 2px solid var(--border); padding: 15px; max-width: 600px; width: 100%; text-align: center; position: relative; }
+    .title-wrapper { border: 3px solid var(--border); padding: 15px 20px; margin-bottom: 20px; display: inline-block; background: var(--bg); box-shadow: 0 0 15px var(--shadow); }
+    .game-title-main { font-size: 1.5em; font-weight: bold; text-transform: uppercase; letter-spacing: 4px; color: var(--text); }
+    .menu-row { display: flex; gap: 12px; margin-bottom: 10px; }
+    .menu-half-btn {
+        flex: 1; height: 50px; background: var(--bg); color: var(--text);
+        border: 2px solid var(--border); cursor: pointer; font-family: inherit; font-weight: bold;
+        font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px;
+        display: flex; align-items: center; justify-content: center; padding: 0;
+        transition: all 0.3s; position: relative;
+    }
+    .menu-half-btn svg { width: 26px; height: 26px; }
+    .menu-half-btn .slash {
+        display: none; position: absolute; width: 34px; height: 3px;
+        background: currentColor; transform: rotate(-45deg); pointer-events: none;
+    }
+    .menu-half-btn.muted .slash { display: block; }
+    .records-screen {
+        display: none; background: var(--bg-container); border: 2px solid var(--border);
+        padding: 15px; max-width: 600px; width: 100%; text-align: center;
+    }
+    .records-screen.show { display: block; }
+    .records-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .record-group { border: 2px solid var(--border); padding: 10px 14px; background: var(--bg); text-align: left; }
+    .record-group-title {
+        font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 6px; border-bottom: 1px solid var(--border); padding-bottom: 4px;
+    }
+    .record-item { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.9em; }
+    .record-value { font-weight: bold; }
+    .record-item.empty .record-value { opacity: 0.5; }
+    .menu { display: flex; flex-direction: column; gap: 12px; margin: 15px 0; }
+    .theme-selector { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .menu-btn, .theme-btn, .touch-btn, .btn-back, .pause-btn, .level-btn, .game-over button, .pause-overlay button, .modal-box button {
+        background: var(--bg); color: var(--text); border: 2px solid var(--border);
+        cursor: pointer; font-family: inherit; font-weight: bold; transition: all 0.3s;
+    }
+    .menu-btn { padding: 18px 30px; font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; width: 100%; min-width: 250px; }
+    .theme-btn { padding: 10px 20px; font-size: 0.9em; text-transform: uppercase; min-width: 120px; }
+    .touch-btn { padding: 18px; font-size: 1.5em; display: flex; align-items: center; justify-content: center; touch-action: manipulation; min-width: 80px; }
+    .btn-back, .pause-btn { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .btn-back svg, .pause-btn svg { width: 24px; height: 24px; }
+    .level-btn { padding: 3px 12px; font-size: 0.8em; min-width: 35px; }
+    .game-over button, .pause-overlay button { padding: 12px 25px; margin-top: 10px; min-width: 150px; }
+    .theme-btn.active { box-shadow: 0 0 10px var(--shadow-strong); }
+    @media (hover: hover) and (pointer: fine) {
+        .menu-btn:hover, .theme-btn:hover, .btn-back:hover, .pause-btn:hover,
+        .level-btn:hover, .menu-half-btn:hover, .game-over button:hover,
+        .pause-overlay button:hover, .modal-box button:hover {
+            background: var(--border); color: var(--text-dark);
+        }
+    }
+    .touch-btn:active, .level-btn.active {
+        background: var(--border); color: var(--text-dark);
+    }
+    .game-container { display: none; position: relative; }
+    .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 10px; }
+    .game-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.8em; gap: 5px; flex-wrap: wrap; padding: 3px; min-height: 30px; }
+    .header-stats { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+    .header-stats .best-line { font-size: 0.7em; opacity: 0.7; }
+    .header-stats-left { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+    .header-stats-left .best-line { font-size: 0.7em; opacity: 0.7; }
+    .grid-2048 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: var(--grid-bg); padding: 8px; border: 2px solid var(--border); margin: 0 auto; max-width: 480px; aspect-ratio: 1; width: 100%; }
+    .cell-2048 { display: flex; align-items: center; justify-content: center; font-size: 2em; font-weight: bold; aspect-ratio: 1; border-radius: 4px; border: 2px solid var(--tile-border-color); background: var(--bg); }
+    .cell-2048[data-value="2"] { background: var(--tile-2); color: var(--tile-text-light); }
+    .cell-2048[data-value="4"] { background: var(--tile-4); color: var(--tile-text-light); }
+    .cell-2048[data-value="8"] { background: var(--tile-8); color: var(--tile-text-light); }
+    .cell-2048[data-value="16"] { background: var(--tile-16); color: var(--tile-text-light); }
+    .cell-2048[data-value="32"] { background: var(--tile-32); color: var(--tile-text-light); }
+    .cell-2048[data-value="64"] { background: var(--tile-64); color: var(--tile-text-dark); }
+    .cell-2048[data-value="128"] { background: var(--tile-128); color: var(--tile-text-dark); }
+    .cell-2048[data-value="256"] { background: var(--tile-256); color: var(--tile-text-dark); }
+    .cell-2048[data-value="512"] { background: var(--tile-512); color: var(--tile-text-dark); }
+    .cell-2048[data-value="1024"] { background: var(--tile-1024); color: var(--tile-text-dark); font-size: 1.5em; }
+    .cell-2048[data-value="2048"] { background: var(--tile-2048); color: var(--tile-text-dark); font-size: 1.5em; }
+    .canvas-snake, .canvas-arkanoid { border: 2px solid var(--border); background: var(--bg); display: block; margin: 0 auto; width: 100%; }
+    .canvas-snake { max-width: 480px; aspect-ratio: 1; }
+    .canvas-arkanoid { max-width: 480px; aspect-ratio: 3/4; }
+    .canvas-frog { border: 2px solid var(--border); background: var(--bg); display: block; margin: 0 auto; width: 100%; max-width: 360px; aspect-ratio: 360 / 450; }
+    .mahjong-board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; background: var(--grid-bg); padding: 6px; border: 2px solid var(--border); margin: 0 auto; max-width: 440px; width: 100%; }
+    .mahjong-board.pairs-16 { grid-template-rows: repeat(4, 2fr); aspect-ratio: 1/1; }
+    .mahjong-board.pairs-32 { grid-template-rows: repeat(8, 1fr); aspect-ratio: 1/1; }
+    .mahjong-tile { background: var(--mh-tile-bg); border: 1px solid var(--mh-tile-border); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 0 1px var(--shadow); overflow: hidden; min-height: 0; min-width: 0; }
+    .mahjong-tile.flipped { background: var(--mh-flipped-bg); border-color: var(--mh-tile-border); }
+    .mahjong-tile.matched { background: var(--grid-bg); cursor: default; opacity: 0.2; }
+    .mahjong-symbol { display: none; width: 85%; height: 85%; color: var(--mh-symbol-color); }
+    .mahjong-symbol svg { width: 100%; height: 100%; display: block; }
+    .mahjong-tile.flipped .mahjong-symbol, .mahjong-tile.matched .mahjong-symbol { display: block; }
+    .touch-controls { display: flex; justify-content: center; gap: 10px; margin-top: 15px; }
+    .touch-controls.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    #gameArkanoid .touch-btn { min-width: 160px; padding: 20px; }
+    #gameFrog .touch-btn { flex: 1; min-width: 100px; padding: 20px; }
+    .touch-btn-empty { visibility: hidden; }
+    .game-over, .pause-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg); border: 2px solid var(--border); padding: 20px; text-align: center; z-index: 10; display: none; }
+    .game-over.show, .pause-overlay.show { display: block; }
+    .game-over h2, .pause-overlay h2 { margin-bottom: 10px; text-transform: uppercase; font-weight: bold; }
+    .game-over button { display: block; margin: 10px auto 0; }
+    .level-selector { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; }
+    #livesDisplayFrog { font-size: 1.3em; letter-spacing: 3px; }
+    .loading-overlay {
+        position: fixed; inset: 0; background: var(--bg);
+        display: none; align-items: center; justify-content: center; flex-direction: column;
+        z-index: 9999;
+    }
+    .loading-overlay.show { display: flex; }
+    .loading-overlay h2 { color: var(--text); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+    .loading-dots { display: flex; gap: 10px; }
+    .loading-dots span {
+        width: 14px; height: 14px; background: var(--text); border-radius: 50%;
+        animation: loadingPulse 1.4s infinite ease-in-out;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes loadingPulse {
+        0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1); }
+    }
+    .container.locked { pointer-events: none; opacity: 0.5; }
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        display: none; align-items: center; justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+        background: var(--bg);
+        border: 2px solid var(--border);
+        padding: 25px;
+        text-align: center;
+        min-width: 260px;
+        max-width: 90%;
+    }
+    .modal-box h2 {
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+    .modal-box .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .modal-box button {
+        padding: 12px 22px;
+        min-width: 110px;
+        font-size: 0.9em;
+        text-transform: uppercase;
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+        body::before { content: 'Поверните устройство вертикально'; position: fixed; inset: 0; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; font-size: 1.5em; font-family: 'Consolas', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace; font-weight: bold; text-transform: uppercase; text-align: center; padding: 20px; z-index: 99999; }
+        .container { display: none; }
+    }
+    @media (max-width: 480px) {
+        .container { padding: 8px; }
+        .grid-2048, .canvas-snake, .mahjong-board, .canvas-arkanoid, .canvas-frog { max-width: 100%; }
+        .canvas-arkanoid { max-height: 60vh; }
+        .touch-btn { padding: 15px; font-size: 1.2em; min-width: 60px; }
+        #gameArkanoid .touch-btn { min-width: 130px; padding: 18px; }
+        #gameFrog .touch-btn { min-width: 60px; padding: 15px; }
+        .cell-2048 { font-size: 1.5em; }
+        .cell-2048[data-value="1024"], .cell-2048[data-value="2048"] { font-size: 1.1em; }
+        .pause-btn, .btn-back { width: 45px; height: 45px; }
+        .menu-btn { padding: 15px 25px; font-size: 1em; min-width: 200px; }
+        .theme-btn { padding: 8px 15px; font-size: 0.8em; min-width: 90px; }
+    }
+</style>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <h2>Загрузка прогресса</h2>
+        <div class="loading-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2 id="modalTitle">Сообщение</h2>
+            <div class="modal-buttons" id="modalButtons"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div id="menu" class="menu">
+            <div class="title-wrapper"><div class="game-title-main">Ретро Игры</div></div>
+            <div class="menu-row">
+                <button class="menu-half-btn" onclick="showRecords()">Рекорды</button>
+                <button class="menu-half-btn" id="soundToggle" onclick="toggleSound()">
+                    <svg viewBox="0 0 24 24" fill="none"><polygon points="3,9 3,15 7,15 11,19 11,5 7,9" fill="currentColor"/></svg>
+                    <div class="slash"></div>
+                </button>
+            </div>
+            <div class="theme-selector">
+                <button class="theme-btn active" data-theme="default" onclick="setTheme('default')">Чёрный</button>
+                <button class="theme-btn" data-theme="inverse" onclick="setTheme('inverse')">Белый</button>
+                <button class="theme-btn" data-theme="yellow" onclick="setTheme('yellow')">Жёлтый</button>
+            </div>
+            <button class="menu-btn" onclick="showGame('frog')">Snoop Frogg</button>
+            <button class="menu-btn" onclick="showGame('snake')">Змейка</button>
+            <button class="menu-btn" onclick="showGame('arkanoid')">Арканоид</button>
+            <button class="menu-btn" onclick="showGame('mahjong')">Маджонг</button>
+            <button class="menu-btn" onclick="showGame('2048')">2048</button>
+        </div>
+
+        <div id="records" class="records-screen">
+            <div class="game-header">
+                <button class="btn-back" onclick="hideRecords()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <span>Рекорды</span>
+                <button class="btn-back" onclick="confirmResetRecords()"><svg viewBox="0 0 20 20"><path d="M4 6 L16 6 L16 17 L4 17 Z M7 3 L13 3 L13 6 L7 6 Z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7" y1="9" x2="7" y2="15" stroke="currentColor" stroke-width="2"/><line x1="10" y1="9" x2="10" y2="15" stroke="currentColor" stroke-width="2"/><line x1="13" y1="9" x2="13" y2="15" stroke="currentColor" stroke-width="2"/></svg></button>
+            </div>
+            <div class="records-list" id="recordsList"></div>
+        </div>
+
+        <div id="game2048" class="game-container">
+            <div class="game-header">
+                <button class="btn-back" onclick="showMenu()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <div class="header-stats">
+                    <span>Счёт: <span id="score2048">0</span></span>
+                    <span class="best-line">Рекорд: <span id="best2048">—</span></span>
+                </div>
+            </div>
+            <div class="grid-2048" id="grid2048"></div>
+            <div class="touch-controls grid">
+                <div class="touch-btn-empty"></div>
+                <button class="touch-btn" id="btn2048Up">↑</button>
+                <div class="touch-btn-empty"></div>
+                <button class="touch-btn" id="btn2048Left">←</button>
+                <button class="touch-btn" id="btn2048Down">↓</button>
+                <button class="touch-btn" id="btn2048Right">→</button>
+            </div>
+            <div class="game-over" id="gameOver2048"><h2>Игра окончена!</h2><p>Счёт: <span id="finalScore2048">0</span></p><button onclick="init2048()">Играть снова</button></div>
+        </div>
+
+        <div id="gameSnake" class="game-container">
+            <div class="game-header">
+                <button class="btn-back" onclick="showMenu()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <div class="level-selector">
+                    <button class="level-btn active" data-mode="levels" onclick="setSnakeMode('levels')">Уровни</button>
+                    <button class="level-btn" data-mode="endless" onclick="setSnakeMode('endless')">Бесконечный</button>
+                </div>
+                <button class="pause-btn" id="pauseBtnSnake" onclick="toggleSnakePause()"><svg viewBox="0 0 20 20"><rect x="4" y="3" width="4" height="14" fill="currentColor"/><rect x="12" y="3" width="4" height="14" fill="currentColor"/></svg></button>
+            </div>
+            <div class="game-info">
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span id="snakeLevelDisplay">Уровень: <span id="levelSnake">1</span></span>
+                    <span id="snakeScoreDisplay" style="display:none;">
+                        <span class="header-stats-left">
+                            <span>Счёт: <span id="scoreSnake">0</span></span>
+                            <span class="best-line">Рекорд: <span id="bestSnake">—</span></span>
+                        </span>
+                    </span>
+                    <span id="snakeFoodDisplay" style="display:none;">Еда: <span id="snakeFoodCount">0/17</span></span>
+                </div>
+                <div class="level-selector" id="snakeSpeedSelector" style="display:none;">
+                    <button class="level-btn active" data-level="1" onclick="setSnakeSpeed(1)">1</button>
+                    <button class="level-btn" data-level="2" onclick="setSnakeSpeed(2)">2</button>
+                    <button class="level-btn" data-level="3" onclick="setSnakeSpeed(3)">3</button>
+                    <button class="level-btn" data-level="4" onclick="setSnakeSpeed(4)">4</button>
+                    <button class="level-btn" data-level="5" onclick="setSnakeSpeed(5)">5</button>
+                </div>
+            </div>
+            <canvas id="canvasSnake" class="canvas-snake" width="400" height="400"></canvas>
+            <div class="touch-controls grid">
+                <div class="touch-btn-empty"></div>
+                <button class="touch-btn" onclick="changeDirection('up')">↑</button>
+                <div class="touch-btn-empty"></div>
+                <button class="touch-btn" onclick="changeDirection('left')">←</button>
+                <button class="touch-btn" onclick="changeDirection('down')">↓</button>
+                <button class="touch-btn" onclick="changeDirection('right')">→</button>
+            </div>
+            <div class="pause-overlay" id="pauseSnake"><h2>Пауза</h2><button onclick="toggleSnakePause()">Продолжить</button></div>
+            <div class="game-over" id="gameOverSnake"><h2 id="snakeTitle">Игра окончена!</h2><p id="snakeMessage"></p><button id="snakeReviveBtn" onclick="tryReviveSnake()" style="display:none;">▶ Продолжить за рекламу</button><button id="snakeNextBtn" onclick="nextSnakeLevel()" style="display:none;">Дальше</button><button id="snakeRestartBtn" onclick="restartSnake()">Начать с начала</button></div>
+        </div>
+
+        <div id="gameMahjong" class="game-container">
+            <div class="game-header">
+                <button class="btn-back" onclick="showMenu()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <button class="pause-btn" id="pauseBtnMahjong" onclick="toggleMahjongPause()"><svg viewBox="0 0 20 20"><rect x="4" y="3" width="4" height="14" fill="currentColor"/><rect x="12" y="3" width="4" height="14" fill="currentColor"/></svg></button>
+            </div>
+            <div class="game-info">
+                <span>Пары: <span id="pairsMahjong">0</span>/<span id="totalPairsMahjong">0</span></span>
+                <span>Время: <span id="mahjongTimerDisplay">0:00</span></span>
+                <div class="level-selector" id="mahjongPairsSelector">
+                    <button class="level-btn active" data-pairs="16" onclick="setMahjongPairCount(16)">16 пар</button>
+                    <button class="level-btn" data-pairs="32" onclick="setMahjongPairCount(32)">32 пары</button>
+                </div>
+            </div>
+            <div class="mahjong-board pairs-16" id="mahjongBoard"></div>
+            <div class="pause-overlay" id="pauseMahjong"><h2>Пауза</h2><button onclick="toggleMahjongPause()">Продолжить</button></div>
+            <div class="game-over" id="gameOverMahjong"><h2>Победа!</h2><p>Вы нашли все пары!</p><p>Время: <span id="mahjongFinalTime">0:00</span></p><button onclick="initMahjong()">Играть снова</button></div>
+        </div>
+
+        <div id="gameArkanoid" class="game-container">
+            <div class="game-header">
+                <button class="btn-back" onclick="showMenu()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <div class="header-stats">
+                    <span>Счёт: <span id="scoreArkanoid">0</span></span>
+                    <span class="best-line">Рекорд: <span id="bestArkanoid">—</span></span>
+                </div>
+                <button class="pause-btn" id="pauseBtnArkanoid" onclick="toggleArkanoidPause()"><svg viewBox="0 0 20 20"><rect x="4" y="3" width="4" height="14" fill="currentColor"/><rect x="12" y="3" width="4" height="14" fill="currentColor"/></svg></button>
+            </div>
+            <div class="game-info">
+                <span>Жизни: <span id="livesArkanoid">3</span></span>
+                <span>Уровень: <span id="levelArkanoid">1</span></span>
+            </div>
+            <canvas id="canvasArkanoid" class="canvas-arkanoid" width="360" height="480"></canvas>
+            <div class="touch-controls">
+                <button class="touch-btn" onmousedown="startPaddle('left')" onmouseup="stopPaddle()" ontouchstart="startPaddle('left'); event.preventDefault();" ontouchend="stopPaddle()">←</button>
+                <button class="touch-btn" onmousedown="startPaddle('right')" onmouseup="stopPaddle()" ontouchstart="startPaddle('right'); event.preventDefault();" ontouchend="stopPaddle()">→</button>
+            </div>
+            <div class="pause-overlay" id="pauseArkanoid"><h2>Пауза</h2><button onclick="toggleArkanoidPause()">Продолжить</button></div>
+            <div class="game-over" id="gameOverArkanoid"><h2 id="arkanoidTitle">Победа!</h2><p id="arkanoidMessage">Все уровни пройдены!</p><button id="arkanoidReviveBtn" onclick="tryReviveArkanoid()" style="display:none;">▶ Продолжить за рекламу</button><button id="arkanoidNextBtn" onclick="nextArkanoidLevel()" style="display:none;">Дальше</button><button id="arkanoidRestartBtn" onclick="restartArkanoid()">Начать с начала</button></div>
+        </div>
+
+        <div id="gameFrog" class="game-container">
+            <div class="game-header">
+                <button class="btn-back" onclick="showMenu()"><svg viewBox="0 0 20 20"><line x1="16" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="4"/><polyline points="8,4 4,10 8,16" fill="none" stroke="currentColor" stroke-width="4"/></svg></button>
+                <div class="header-stats">
+                    <span>Счёт: <span id="scoreFrog">0</span></span>
+                    <span class="best-line">Рекорд: <span id="bestFrog">—</span></span>
+                </div>
+                <button class="pause-btn" id="pauseBtnFrog" onclick="toggleFrogPause()"><svg viewBox="0 0 20 20"><rect x="4" y="3" width="4" height="14" fill="currentColor"/><rect x="12" y="3" width="4" height="14" fill="currentColor"/></svg></button>
+            </div>
+            <div class="game-info">
+                <span>Уровень: <span id="levelFrog">1</span></span>
+                <span id="livesDisplayFrog"></span>
+            </div>
+            <canvas id="canvasFrog" class="canvas-frog"></canvas>
+            <div class="touch-controls">
+                <button class="touch-btn" ontouchstart="frogStartMove('left'); event.preventDefault();" ontouchend="frogStopMove()" onmousedown="frogStartMove('left')" onmouseup="frogStopMove()">←</button>
+                <button class="touch-btn" id="frogShootBtn">↑</button>
+                <button class="touch-btn" ontouchstart="frogStartMove('right'); event.preventDefault();" ontouchend="frogStopMove()" onmousedown="frogStartMove('right')" onmouseup="frogStopMove()">→</button>
+            </div>
+            <div class="pause-overlay" id="pauseFrog"><h2>Пауза</h2><button onclick="toggleFrogPause()">Продолжить</button></div>
+            <div class="game-over" id="gameOverFrog"><h2>Игра окончена!</h2><p>Счёт: <span id="finalScoreFrog">0</span></p><button id="frogReviveBtn" onclick="tryReviveFrog()">▶ Продолжить за рекламу</button><button onclick="restartFrog()">Начать с начала</button></div>
+        </div>
+    </div>
+<script>
+if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock('portrait').catch(() => {});
+}
+
+let modalCallback = null;
+function showModal(title, buttons) {
+    document.getElementById('modalTitle').textContent = title;
+    const btns = document.getElementById('modalButtons');
+    btns.innerHTML = '';
+    buttons.forEach(b => {
+        const btn = document.createElement('button');
+        btn.textContent = b.text;
+        btn.onclick = () => {
+            hideModal();
+            if (b.callback) b.callback();
+        };
+        btns.appendChild(btn);
+    });
+    document.getElementById('modalOverlay').classList.add('show');
+}
+function hideModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+    modalCallback = null;
+}
+
+function showAd() {
+    return new Promise((resolve, reject) => {
+        reject('no_ad');
+    });
+}
+
+const Save = {
+    prefix: 'retro_', cache: {},
+    isTelegram: false, cloudReady: false,
+    init() {
+        if (window.Telegram?.WebApp?.CloudStorage && window.Telegram.WebApp.isVersionAtLeast('6.9')) {
+            this.isTelegram = true;
+        }
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith(this.prefix) && !k.endsWith('_ts')) {
+                const key = k.slice(this.prefix.length);
+                try { this.cache[key] = JSON.parse(localStorage.getItem(k)); } catch (e) {}
+            }
+        }
+        return this.syncFromCloud();
+    },
+    syncFromCloud() {
+        if (!this.isTelegram) { this.cloudReady = true; return Promise.resolve(); }
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => { this.cloudReady = true; resolve(); }, 5000);
+            const keys = ['theme','sound','best_frog','best_snake_endless','best_snake_levels','best_arkanoid','best_mahjong_16','best_mahjong_32','best_2048','frog_level','snake_level','arkanoid_level','2048_state','arkanoid_state','frog_state','snake_state','mahjong_state'];
+            const cloudKeys = keys.map(k => this.prefix + k);
+            try {
+                window.Telegram.WebApp.CloudStorage.getItems(cloudKeys, (err, values) => {
+                    clearTimeout(timer);
+                    if (!err && values) {
+                        keys.forEach(key => {
+                            const cloudRaw = values[this.prefix + key];
+                            if (cloudRaw === undefined || cloudRaw === null) return;
+                            let cloudVal; try { cloudVal = JSON.parse(cloudRaw); } catch(e) { return; }
+                            const cloudTs = values[this.prefix + key + '_ts'];
+                            const localTs = this.cache[key + '_ts'] || 0;
+                            const cloudTsNum = cloudTs ? parseInt(cloudTs, 10) : 0;
+                            if (cloudTsNum >= localTs) {
+                                if (key.endsWith('_level') || key === 'best_frog' || key === 'best_snake_endless' || key === 'best_snake_levels' || key === 'best_arkanoid' || key === 'best_2048') {
+                                    if (typeof cloudVal === 'number' && typeof this.cache[key] === 'number') {
+                                        this.cache[key] = Math.max(this.cache[key], cloudVal);
+                                    } else {
+                                        this.cache[key] = cloudVal;
+                                    }
+                                } else {
+                                    this.cache[key] = cloudVal;
+                                }
+                                this.cache[key + '_ts'] = cloudTsNum;
+                                try { localStorage.setItem(this.prefix + key, JSON.stringify(this.cache[key])); } catch(e) {}
+                            }
+                        });
+                    }
+                    this.cloudReady = true;
+                    resolve();
+                });
+            } catch(e) { clearTimeout(timer); this.cloudReady = true; resolve(); }
+        });
+    },
+    get(k, f) { return this.cache[k] !== undefined ? this.cache[k] : f; },
+    set(k, v) {
+        const ts = Date.now();
+        this.cache[k] = v;
+        this.cache[k + '_ts'] = ts;
+        try {
+            localStorage.setItem(this.prefix + k, JSON.stringify(v));
+            localStorage.setItem(this.prefix + k + '_ts', String(ts));
+        } catch (e) {}
+        if (this.isTelegram && this.cloudReady) {
+            try {
+                window.Telegram.WebApp.CloudStorage.setItem(this.prefix + k, JSON.stringify(v), () => {});
+                window.Telegram.WebApp.CloudStorage.setItem(this.prefix + k + '_ts', String(ts), () => {});
+            } catch(e) {}
+        }
+    },
+    remove(k) {
+        delete this.cache[k];
+        delete this.cache[k + '_ts'];
+        try {
+            localStorage.removeItem(this.prefix + k);
+            localStorage.removeItem(this.prefix + k + '_ts');
+        } catch (e) {}
+        if (this.isTelegram && this.cloudReady) {
+            try {
+                window.Telegram.WebApp.CloudStorage.removeItem(this.prefix + k, () => {});
+                window.Telegram.WebApp.CloudStorage.removeItem(this.prefix + k + '_ts', () => {});
+            } catch(e) {}
+        }
+    }
+};
+
+function saveBest(k, v) {
+    const c = Save.get(k, null);
+    if (c === null || v > c) { Save.set(k, v); return true; }
+    return false;
+}
+function saveBestTime(k, s) {
+    const c = Save.get(k, null);
+    if (c === null || s < c) { Save.set(k, s); return true; }
+    return false;
+}
+
+const RECORDS_CONFIG = [
+    { key: 'frog', title: 'Snoop Frogg', items: [{ id: 'best_frog', label: 'Лучший счёт' }] },
+    { key: 'snake', title: 'Змейка', items: [{ id: 'best_snake_endless', label: 'Бесконечный' }, { id: 'best_snake_levels', label: 'Уровни' }] },
+    { key: 'arkanoid', title: 'Арканоид', items: [{ id: 'best_arkanoid', label: 'Лучший счёт' }] },
+    { key: 'mahjong', title: 'Маджонг', items: [{ id: 'best_mahjong_16', label: '16 пар' }, { id: 'best_mahjong_32', label: '32 пары' }] },
+    { key: '2048', title: '2048', items: [{ id: 'best_2048', label: 'Лучший счёт' }] }
+];
+
+function formatTime(s) {
+    if (s === null || s === undefined) return '—';
+    const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+    return m + ':' + (ss < 10 ? '0' : '') + ss;
+}
+function showRecords() {
+    saveAllStatesOnExit();
+    document.getElementById('menu').style.display = 'none';
+    ['game2048','gameSnake','gameMahjong','gameArkanoid','gameFrog'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('records').classList.add('show');
+    renderRecords();
+}
+function hideRecords() {
+    document.getElementById('records').classList.remove('show');
+    document.getElementById('menu').style.display = 'flex';
+}
+function renderRecords() {
+    const list = document.getElementById('recordsList');
+    list.innerHTML = '';
+    RECORDS_CONFIG.forEach(g => {
+        const ge = document.createElement('div');
+        ge.className = 'record-group';
+        const t = document.createElement('div');
+        t.className = 'record-group-title';
+        t.textContent = g.title;
+        ge.appendChild(t);
+        g.items.forEach(it => {
+            const v = Save.get(it.id, null);
+            const r = document.createElement('div');
+            r.className = 'record-item' + (v === null ? ' empty' : '');
+            const l = document.createElement('span');
+            l.textContent = it.label + ':';
+            const val = document.createElement('span');
+            val.className = 'record-value';
+            if (v === null) val.textContent = '—';
+            else if (it.id.startsWith('best_mahjong')) val.textContent = formatTime(v);
+            else val.textContent = v;
+            r.appendChild(l);
+            r.appendChild(val);
+            ge.appendChild(r);
+        });
+        list.appendChild(ge);
+    });
+}
+function confirmResetRecords() {
+    showModal('Сбросить все рекорды?', [
+        { text: 'Сбросить', callback: () => {
+            RECORDS_CONFIG.forEach(g => g.items.forEach(it => Save.remove(it.id)));
+            renderRecords();
+        }},
+        { text: 'Отмена', callback: null }
+    ]);
+}
+
+let audioCtx = null;
+let soundEnabled = true;
+let volume = 0.3;
+let rocketNode = null;
+let propellerNode = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playTone(freq, duration, type = 'triangle', vol = 1, startTime = 0, endFreq = null, attack = 0.02) {
+    if (!soundEnabled) return;
+    const now = audioCtx.currentTime + startTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq !== null) osc.frequency.linearRampToValueAtTime(endFreq, now + duration);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume * vol, now + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + duration + 0.05);
+}
+function playSoftNoise(duration, vol = 1, startTime = 0, filterFreq = 800, attack = 0.02) {
+    if (!soundEnabled) return;
+    const now = audioCtx.currentTime + startTime;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = filterFreq; filter.Q.value = 0.7;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume * vol, now + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    source.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    source.start(now); source.stop(now + duration);
+}
+function sndClick(){initAudio();playTone(800,0.03,'sine',1,0);}
+function sndEat(){initAudio();playTone(500,0.07,'triangle',1,0);playTone(700,0.09,'triangle',1,0.06);}
+function sndChpok(){initAudio();playTone(600,0.045,'sine',1,0,null,0.005);}
+function sndBonus(){initAudio();[400,500,600,800].forEach((f,i)=>playTone(f,0.09,'triangle',1,i*0.06));}
+function sndMatch(){initAudio();playTone(500,0.07,'triangle',1,0);playTone(600,0.07,'triangle',1,0.07);playTone(700,0.1,'triangle',1,0.14);}
+function sndHit(){initAudio();playSoftNoise(0.06,0.8,0,800);playTone(200,0.06,'triangle',0.6,0);}
+function sndShoot(){initAudio();playTone(600,0.12,'sine',1,0,300);}
+function sndLaser(){initAudio();playTone(600,0.12,'sine',0.5,0,300);}
+function sndDeath(){initAudio();playTone(350,0.45,'sine',1.2,0,100);playSoftNoise(0.25,0.48,0.15,600);}
+function sndGameOver(){initAudio();playTone(300,0.5,'sine',1.2,0,80);playSoftNoise(0.3,0.36,0.2,500);}
+function sndLevelUp(){initAudio();[400,500,600,700,800].forEach((f,i)=>playTone(f,0.13,'triangle',1,i*0.1));}
+function sndVictory(){initAudio();const notes=[400,400,400,500,600,600,800];const durs=[0.12,0.12,0.16,0.16,0.12,0.12,0.35];let t=0;notes.forEach((f,i)=>{playTone(f,durs[i],'triangle',1,t);t+=durs[i];});}
+function sndPause(){initAudio();playTone(400,0.1,'triangle',1,0);playTone(300,0.12,'triangle',1,0.1);}
+function sndUnpause(){initAudio();playTone(300,0.1,'triangle',1,0);playTone(400,0.12,'triangle',1,0.1);}
+function sndSnakeStep(){if(!soundEnabled)return;initAudio();playTone(400,0.025,'triangle',0.25,0);}
+function sndJump(){initAudio();playTone(250,0.12,'triangle',1,0,500);}
+function sndSpring(){initAudio();playTone(300,0.15,'triangle',1,0,900);}
+function sndShield(){initAudio();playTone(700,0.15,'sine',1,0);playTone(900,0.15,'sine',0.6,0.06);}
+function sndBounce(){initAudio();playTone(700,0.05,'sine',0.8,0,null,0.005);}
+function sndWallBounce(){initAudio();playTone(700,0.05,'sine',0.8,0,null,0.005);}
+function sndBreak(){initAudio();playSoftNoise(0.12,0.9,0,800);playTone(150,0.1,'triangle',0.7,0);}
+
+function startRocketSound() {
+    if (!soundEnabled) return; initAudio();
+    if (rocketNode) return;
+    const bufferSize = audioCtx.sampleRate * 2;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer; source.loop = true;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 600; filter.Q.value = 0.5;
+    const gain = audioCtx.createGain();
+    gain.gain.value = volume * 0.2376;
+    source.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    source.start();
+    rocketNode = { source, gain, filter };
+}
+function stopRocketSound() {
+    if (rocketNode) {
+        try { rocketNode.source.stop(); } catch(e) {}
+        try { rocketNode.source.disconnect(); } catch(e) {}
+        rocketNode = null;
+    }
+}
+function startPropellerSound() {
+    if (!soundEnabled) return; initAudio();
+    if (propellerNode) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = 200;
+    gain.gain.value = volume * 0.1267;
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 8;
+    lfoGain.gain.value = volume * 0.0792;
+    lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); lfo.start();
+    propellerNode = { osc, gain, lfo };
+}
+function stopPropellerSound() {
+    if (propellerNode) {
+        try { propellerNode.osc.stop(); } catch(e) {}
+        try { propellerNode.osc.disconnect(); } catch(e) {}
+        try { propellerNode.lfo.stop(); } catch(e) {}
+        try { propellerNode.lfo.disconnect(); } catch(e) {}
+        propellerNode = null;
+    }
+}
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    document.getElementById('soundToggle').classList.toggle('muted', !soundEnabled);
+    Save.set('sound', soundEnabled);
+    if (soundEnabled) { initAudio(); sndClick(); }
+    else { stopRocketSound(); stopPropellerSound(); }
+}
+
+let cachedBg = '#000', cachedFg = '#fff';
+function updateCachedColors() {
+    cachedBg = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#000';
+    cachedFg = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#fff';
+    createSnakeGlow();
+    updateFrogColors();
+}
+function updatePauseIcon(btnId, isPaused) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.innerHTML = isPaused
+        ? '<svg viewBox="0 0 20 20"><polygon points="5,3 17,10 5,17" fill="currentColor"/></svg>'
+        : '<svg viewBox="0 0 20 20"><rect x="4" y="3" width="4" height="14" fill="currentColor"/><rect x="12" y="3" width="4" height="14" fill="currentColor"/></svg>';
+}
+function setTheme(theme) {
+    if (theme === 'default') document.body.removeAttribute('data-theme');
+    else document.body.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+    Save.set('theme', theme);
+    updateCachedColors();
+    if (document.getElementById('game2048').style.display === 'block') render2048();
+    if (document.getElementById('gameSnake').style.display === 'block') { drawStaticSnakeElements(); drawSnake(); }
+    if (document.getElementById('gameMahjong').style.display === 'block') renderMahjong();
+    if (document.getElementById('gameArkanoid').style.display === 'block') { drawBricksToStatic(); drawArkanoid(); }
+    if (document.getElementById('gameFrog').style.display === 'block') { frogRegenerateSprites(); frogDraw(); }
+}
+function showMenu() {
+    saveAllStatesOnExit();
+    document.getElementById('menu').style.display = 'flex';
+    ['game2048','gameSnake','gameMahjong','gameArkanoid','gameFrog'].forEach(id => document.getElementById(id).style.display = 'none');
+    stopAllGames();
+}
+function saveAllStatesOnExit() {
+    saveAllActiveScores();
+    saveArkanoidState();
+    saveFrogState();
+    saveSnakeState();
+    saveState2048();
+    saveMahjongState();
+}
+function showGame(game) {
+    initAudio();
+    document.getElementById('menu').style.display = 'none';
+    ['game2048','gameSnake','gameMahjong','gameArkanoid','gameFrog'].forEach(id => document.getElementById(id).style.display = 'none');
+    if (game === '2048') { document.getElementById('game2048').style.display = 'block'; init2048(); }
+    else if (game === 'snake') { document.getElementById('gameSnake').style.display = 'block'; initSnake(); }
+    else if (game === 'mahjong') { document.getElementById('gameMahjong').style.display = 'block'; initMahjong(); }
+    else if (game === 'arkanoid') { document.getElementById('gameArkanoid').style.display = 'block'; initArkanoid(); }
+    else if (game === 'frog') { document.getElementById('gameFrog').style.display = 'block'; initFrog(); }
+}
+function stopAllGames() {
+    if (snakeInterval) { clearInterval(snakeInterval); snakeInterval = null; }
+    if (snakeBonusTimer) { clearInterval(snakeBonusTimer); snakeBonusTimer = null; }
+    arkanoidStarted = false;
+    if (arkanoidAnimationId) { cancelAnimationFrame(arkanoidAnimationId); arkanoidAnimationId = null; }
+    arkanoidPaddleDir = null; arkanoidPaused = false; snakePaused = false;
+    if (mahjongTimerInterval) { clearInterval(mahjongTimerInterval); mahjongTimerInterval = null; }
+    stopFrogGame();
+    stopRocketSound();
+    stopPropellerSound();
+}
+function saveAllActiveScores() {
+    if (snakeScore > 0 && !snakeGameOver) {
+        if (snakeMode === 'endless') saveBest('best_snake_endless', snakeScore);
+        else saveBest('best_snake_levels', snakeScore);
+    }
+    if (arkanoidScore > 0) saveBest('best_arkanoid', arkanoidScore);
+    if (frogScore > 0) saveBest('best_frog', frogScore);
+    if (score2048 > 0 && !document.getElementById('gameOver2048').classList.contains('show')) saveBest('best_2048', score2048);
+}
+
+// ============ МНОЖИТЕЛИ ОЧКОВ ============
+// Арканоид и Змейка: ×2.5 от базы (округление Math.round)
+// 2048: ×5 от базы
+const SCORE_MULT_ARKANOID = 2.5;
+const SCORE_MULT_SNAKE = 2.5;
+const SCORE_MULT_2048 = 5;
+
+// ============ ХЕЛПЕР РЕКОРДА В РЕАЛЬНОМ ВРЕМЕНИ ============
+function updateBestDisplay(game) {
+    if (game === '2048') {
+        const saved = Save.get('best_2048', null);
+        const live = Math.max(saved || 0, score2048 || 0);
+        document.getElementById('best2048').textContent = live > 0 ? live : '—';
+    } else if (game === 'arkanoid') {
+        const saved = Save.get('best_arkanoid', null);
+        const live = Math.max(saved || 0, arkanoidScore || 0);
+        document.getElementById('bestArkanoid').textContent = live > 0 ? live : '—';
+    } else if (game === 'snake') {
+        const key = snakeMode === 'endless' ? 'best_snake_endless' : 'best_snake_levels';
+        const saved = Save.get(key, null);
+        const live = Math.max(saved || 0, snakeScore || 0);
+        document.getElementById('bestSnake').textContent = live > 0 ? live : '—';
+    } else if (game === 'frog') {
+        const saved = Save.get('best_frog', null);
+        const live = Math.max(saved || 0, frogScore || 0);
+        document.getElementById('bestFrog').textContent = live > 0 ? live : '—';
+    }
+}
+
+// ============ 2048 ============
+let grid2048 = [], score2048 = 0, mergeCount2048 = 0;
+function init2048() {
+    const saved = Save.get('2048_state', null);
+    if (saved && saved.grid && saved.score > 0 && !saved.gameOver) {
+        grid2048 = saved.grid;
+        score2048 = saved.score;
+        document.getElementById('gameOver2048').classList.remove('show');
+        render2048();
+        return;
+    }
+    grid2048 = Array(4).fill(null).map(() => Array(4).fill(0));
+    score2048 = 0; mergeCount2048 = 0;
+    document.getElementById('score2048').textContent = '0';
+    document.getElementById('gameOver2048').classList.remove('show');
+    addNewCell2048(); addNewCell2048(); render2048();
+}
+function saveState2048() {
+    if (score2048 > 0 && !document.getElementById('gameOver2048').classList.contains('show')) {
+        Save.set('2048_state', { grid: grid2048, score: score2048, gameOver: false });
+    } else {
+        Save.remove('2048_state');
+    }
+}
+function addNewCell2048() {
+    const empty = [];
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if (grid2048[i][j] === 0) empty.push({i, j});
+    if (empty.length) {
+        const {i, j} = empty[Math.floor(Math.random() * empty.length)];
+        grid2048[i][j] = Math.random() < 0.9 ? 2 : 4;
+    }
+}
+function render2048() {
+    const grid = document.getElementById('grid2048');
+    grid.innerHTML = '';
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell-2048';
+        if (grid2048[i][j]) cell.dataset.value = grid2048[i][j];
+        cell.textContent = grid2048[i][j] || '';
+        grid.appendChild(cell);
+    }
+    document.getElementById('score2048').textContent = score2048;
+    updateBestDisplay('2048');
+}
+function moveRow2048(row) {
+    let newRow = row.filter(c => c);
+    for (let i = 0; i < newRow.length - 1; i++) {
+        if (newRow[i] === newRow[i + 1]) {
+            newRow[i] *= 2; score2048 += newRow[i] * SCORE_MULT_2048;
+            newRow.splice(i + 1, 1); mergeCount2048++;
+        }
+    }
+    while (newRow.length < 4) newRow.push(0);
+    return newRow;
+}
+function move2048(dir) {
+    const old = JSON.stringify(grid2048);
+    mergeCount2048 = 0;
+    if (dir === 'left') { for (let i = 0; i < 4; i++) grid2048[i] = moveRow2048(grid2048[i]); }
+    else if (dir === 'right') { for (let i = 0; i < 4; i++) grid2048[i] = moveRow2048([...grid2048[i]].reverse()).reverse(); }
+    else if (dir === 'up') { for (let j = 0; j < 4; j++) { const col = moveRow2048(grid2048.map(r => r[j])); for (let i = 0; i < 4; i++) grid2048[i][j] = col[i]; } }
+    else if (dir === 'down') { for (let j = 0; j < 4; j++) { const col = moveRow2048(grid2048.map(r => r[j]).reverse()).reverse(); for (let i = 0; i < 4; i++) grid2048[i][j] = col[i]; } }
+    if (old !== JSON.stringify(grid2048)) {
+        if (mergeCount2048 > 0) sndChpok(); else sndEat();
+        addNewCell2048(); render2048();
+        let gameOver = true;
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+            if (grid2048[i][j] === 0) gameOver = false;
+            if (i < 3 && grid2048[i][j] === grid2048[i + 1][j]) gameOver = false;
+            if (j < 3 && grid2048[i][j] === grid2048[i][j + 1]) gameOver = false;
+        }
+        if (gameOver) {
+            saveBest('best_2048', score2048);
+            Save.remove('2048_state');
+            sndGameOver();
+            document.getElementById('finalScore2048').textContent = score2048;
+            document.getElementById('gameOver2048').classList.add('show');
+        } else {
+            saveState2048();
+        }
+    }
+}
+function bind2048Button(id, dir) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let lastCall = 0;
+    const handle = (e) => {
+        e.preventDefault();
+        initAudio();
+        const now = performance.now();
+        if (now - lastCall < 100) return;
+        lastCall = now;
+        move2048(dir);
+    };
+    btn.addEventListener('touchstart', handle, { passive: false });
+    btn.addEventListener('mousedown', handle);
+}
+bind2048Button('btn2048Up', 'up');
+bind2048Button('btn2048Left', 'left');
+bind2048Button('btn2048Down', 'down');
+bind2048Button('btn2048Right', 'right');
+
+// ============ ЗМЕЙКА ============
+let snake = [], snakeDirection = 'right', snakeNextDirection = 'right', snakeFood = {}, snakeBonus = null,
+    snakeScore = 0, snakeInterval = null, snakeCtx, snakeMode = 'levels', snakeLevel = 1, snakeSpeedLevel = 1,
+    snakePaused = false, snakeBonusTimer = null, snakeWalls = [], snakeStarted = false, snakeGameOver = false,
+    snakeFoodEaten = 0, snakeFoodPulse = false, directionQueue = [];
+let staticSnakeCanvas = null, staticSnakeCtx = null, snakeGlowCanvas = null, snakeGlowCtx = null;
+const SNAKE_FOOD_PER_LEVEL = 17;
+const snakeBaseSpeeds = [220, 187, 154, 121, 88];
+const levelWallsRaw = {
+    1: "6,4;6,5;4,6;5,6;6,6;13,13;14,13;15,13;13,14;13,15",
+    2: "6,4;13,4;6,5;13,5;4,6;5,6;6,6;13,6;14,6;15,6;4,13;5,13;6,13;13,13;14,13;15,13;6,14;13,14;6,15;13,15",
+    3: "4,5;5,5;6,5;7,5;8,5;9,5;10,5;11,5;12,5;13,5;14,5;15,5;4,14;5,14;6,14;7,14;8,14;9,14;10,14;11,14;12,14;13,14;14,14;15,14",
+    4: "4,5;5,5;6,5;7,5;8,5;11,5;12,5;13,5;14,5;15,5;8,6;11,6;8,7;11,7;8,12;11,12;8,13;11,13;4,14;5,14;6,14;7,14;8,14;11,14;12,14;13,14;14,14;15,14",
+    5: "4,4;15,4;4,5;5,5;6,5;7,5;12,5;13,5;14,5;15,5;9,8;10,8;9,11;10,11;4,14;5,14;6,14;7,14;12,14;13,14;14,14;15,14;4,15;15,15",
+    6: "3,3;4,3;5,3;6,3;7,3;8,3;9,3;10,3;11,3;12,3;13,3;14,3;15,3;16,3;3,4;16,4;3,5;16,5;3,6;16,6;3,13;16,13;3,14;16,14;3,15;16,15;3,16;4,16;5,16;6,16;7,16;8,16;9,16;10,16;11,16;12,16;13,16;14,16;15,16;16,16",
+    7: "3,3;4,3;5,3;6,3;7,3;8,3;11,3;12,3;13,3;14,3;15,3;16,3;3,4;16,4;3,5;16,5;3,6;16,6;9,7;10,7;9,8;10,8;9,11;10,11;9,12;10,12;3,13;16,13;3,14;16,14;3,15;16,15;3,16;4,16;5,16;6,16;7,16;8,16;11,16;12,16;13,16;14,16;15,16;16,16",
+    8: "9,0;10,0;9,1;10,1;9,2;10,2;9,3;10,3;0,6;1,6;2,6;3,6;16,6;17,6;18,6;19,6;0,7;1,7;2,7;3,7;16,7;17,7;18,7;19,7;0,12;1,12;2,12;3,12;16,12;17,12;18,12;19,12;0,13;1,13;2,13;3,13;16,13;17,13;18,13;19,13;9,16;10,16;9,17;10,17;9,18;10,18;9,19;10,19",
+    9: "3,2;4,2;5,2;6,2;13,2;14,2;15,2;16,2;3,6;4,6;5,6;6,6;13,6;14,6;15,6;16,6;3,13;4,13;5,13;6,13;13,13;14,13;15,13;16,13;3,17;4,17;5,17;6,17;13,17;14,17;15,17;16,17",
+    10: "0,0;1,0;2,0;17,0;18,0;19,0;0,1;19,1;0,2;8,2;9,2;10,2;11,2;19,2;3,6;16,6;3,7;16,7;3,12;16,12;3,13;16,13;0,17;8,17;9,17;10,17;11,17;19,17;0,18;19,18;0,19;1,19;2,19;17,19;18,19;19,19",
+    11: "0,0;1,0;9,0;10,0;18,0;19,0;0,1;1,1;9,1;10,1;18,1;19,1;0,7;1,7;9,7;10,7;18,7;19,7;0,8;1,8;9,8;10,8;18,8;19,8;0,11;1,11;9,11;10,11;18,11;19,11;0,12;1,12;9,12;10,12;18,12;19,12;0,18;1,18;9,18;10,18;18,18;19,18;0,19;1,19;9,19;10,19;18,19;19,19",
+    12: "0,0;1,0;2,0;9,0;10,0;17,0;18,0;19,0;0,1;1,1;2,1;9,1;10,1;17,1;18,1;19,1;9,2;10,2;9,3;10,3;9,4;10,4;9,5;10,5;9,6;10,6;0,7;1,7;9,7;10,7;18,7;19,7;0,12;1,12;9,12;10,12;18,12;19,12;9,13;10,13;9,14;10,14;9,15;10,15;9,16;10,16;9,17;10,17;0,18;1,18;2,18;9,18;10,18;17,18;18,18;19,18;0,19;1,19;2,19;9,19;10,19;17,19;18,19;19,19",
+    13: "0,0;1,0;2,0;3,0;4,0;5,0;6,0;7,0;8,0;9,0;10,0;11,0;12,0;13,0;14,0;15,0;16,0;17,0;18,0;19,0;2,3;3,3;4,3;15,3;16,3;17,3;2,4;17,4;2,5;8,5;9,5;10,5;11,5;17,5;2,6;8,6;9,6;10,6;11,6;17,6;2,13;8,13;9,13;10,13;11,13;17,13;2,14;8,14;9,14;10,14;11,14;17,14;2,15;17,15;2,16;3,16;4,16;15,16;16,16;17,16;0,19;1,19;2,19;3,19;4,19;5,19;6,19;7,19;8,19;9,19;10,19;11,19;12,19;13,19;14,19;15,19;16,19;17,19;18,19;19,19",
+    14: "0,0;1,0;2,0;3,0;4,0;5,0;14,0;15,0;16,0;17,0;18,0;19,0;0,1;19,1;0,2;19,2;0,3;19,3;0,4;19,4;0,5;7,5;12,5;19,5;7,6;12,6;7,7;8,7;9,7;10,7;11,7;12,7;7,12;8,12;9,12;10,12;11,12;12,12;7,13;12,13;0,14;7,14;12,14;19,14;0,15;19,15;0,16;19,16;0,17;19,17;0,18;19,18;0,19;1,19;2,19;3,19;4,19;5,19;14,19;15,19;16,19;17,19;18,19;19,19",
+    15: "0,0;1,0;18,0;19,0;0,1;19,1;3,3;8,3;9,3;10,3;11,3;16,3;3,4;16,4;3,5;16,5;9,7;10,7;9,8;10,8;9,11;10,11;9,12;10,12;3,14;16,14;3,15;16,15;3,16;8,16;9,16;10,16;11,16;16,16;0,18;19,18;0,19;1,19;18,19;19,19"
+};
+const levelWalls = {};
+for (const lvl in levelWallsRaw) {
+    levelWalls[lvl] = levelWallsRaw[lvl].split(';').map(p => p.split(',').map(Number));
+}
+function createSnakeGlow() {
+    if (!snakeGlowCanvas) {
+        snakeGlowCanvas = document.createElement('canvas');
+        snakeGlowCanvas.width = 28; snakeGlowCanvas.height = 28;
+        snakeGlowCtx = snakeGlowCanvas.getContext('2d', { alpha: true });
+    }
+    snakeGlowCtx.clearRect(0, 0, 28, 28);
+    snakeGlowCtx.globalAlpha = 0.1; snakeGlowCtx.fillStyle = cachedFg; snakeGlowCtx.fillRect(0, 0, 28, 28);
+    snakeGlowCtx.globalAlpha = 0.2; snakeGlowCtx.fillRect(3, 3, 22, 22);
+    snakeGlowCtx.globalAlpha = 0.3; snakeGlowCtx.fillRect(6, 6, 16, 16);
+    snakeGlowCtx.globalAlpha = 0.4; snakeGlowCtx.fillRect(9, 9, 10, 10);
+    snakeGlowCtx.globalAlpha = 1;
+}
+function drawStaticSnakeElements() {
+    if (!staticSnakeCtx) return;
+    staticSnakeCtx.fillStyle = cachedBg; staticSnakeCtx.fillRect(0, 0, 400, 400);
+    staticSnakeCtx.fillStyle = cachedFg;
+    for (const w of snakeWalls) staticSnakeCtx.fillRect(w.x * 20, w.y * 20, 20, 20);
+}
+function generateSnakePattern(level) {
+    const idx = ((level - 1) % 15) + 1;
+    return (levelWalls[idx] || []).map(w => ({x: w[0], y: w[1]}));
+}
+function getSnakeSpeed(level) {
+    const baseSpeed = 220, minSpeed = 100, step = 4;
+    return Math.max(baseSpeed - (level - 1) * step, minSpeed);
+}
+function initSnake() {
+    snakeCtx = document.getElementById('canvasSnake').getContext('2d', { alpha: false });
+    if (!staticSnakeCanvas) {
+        staticSnakeCanvas = document.createElement('canvas');
+        staticSnakeCanvas.width = 400; staticSnakeCanvas.height = 400;
+        staticSnakeCtx = staticSnakeCanvas.getContext('2d', { alpha: false });
+    }
+    createSnakeGlow();
+    const savedRaw = Save.get('snake_state', null);
+    const saved = (savedRaw && savedRaw.mode === snakeMode) ? savedRaw : null;
+    if (saved && saved.snake && !saved.gameOver) {
+        snake = saved.snake;
+        snakeDirection = saved.direction || 'right';
+        snakeNextDirection = saved.nextDirection || 'right';
+        snakeFood = saved.food || {};
+        snakeBonus = saved.bonus || null;
+        snakeScore = saved.score || 0;
+        snakeLevel = saved.level || 1;
+        snakeFoodEaten = saved.foodEaten || 0;
+        snakeStarted = false;
+        snakeGameOver = false;
+        snakePaused = false;
+        directionQueue = [];
+        document.getElementById('scoreSnake').textContent = snakeScore;
+        document.getElementById('levelSnake').textContent = snakeLevel;
+        document.getElementById('snakeFoodCount').textContent = snakeFoodEaten + '/' + SNAKE_FOOD_PER_LEVEL;
+    } else {
+        snake = [{x: 5, y: 10}, {x: 4, y: 10}, {x: 3, y: 10}];
+        snakeDirection = snakeNextDirection = 'right';
+        directionQueue = [];
+        snakeScore = 0; snakeBonus = null; snakePaused = false; snakeStarted = false; snakeGameOver = false;
+        snakeFoodEaten = 0; snakeFoodPulse = false;
+        snakeLevel = Save.get('snake_level', 1);
+        document.getElementById('scoreSnake').textContent = '0';
+        document.getElementById('levelSnake').textContent = snakeLevel;
+        document.getElementById('snakeFoodCount').textContent = '0/' + SNAKE_FOOD_PER_LEVEL;
+    }
+    document.getElementById('snakeLevelDisplay').style.display = snakeMode === 'levels' ? 'inline' : 'none';
+    document.getElementById('snakeScoreDisplay').style.display = snakeMode === 'endless' ? 'inline' : 'none';
+    document.getElementById('snakeFoodDisplay').style.display = snakeMode === 'levels' ? 'inline' : 'none';
+    document.getElementById('snakeSpeedSelector').style.display = snakeMode === 'endless' ? 'flex' : 'none';
+    document.getElementById('gameOverSnake').classList.remove('show');
+    document.getElementById('pauseSnake').classList.remove('show');
+    document.getElementById('snakeReviveBtn').style.display = 'none';
+    document.getElementById('snakeNextBtn').style.display = 'none';
+    document.getElementById('snakeRestartBtn').style.display = 'inline-block';
+    updatePauseIcon('pauseBtnSnake', snakePaused);
+    if (snakeBonusTimer) { clearInterval(snakeBonusTimer); snakeBonusTimer = null; }
+    buildSnakeWalls(); drawStaticSnakeElements();
+    if (!saved || !saved.food) generateFood();
+    drawSnake();
+    updateBestDisplay('snake');
+    if (snakeInterval) clearInterval(snakeInterval);
+    snakeInterval = null;
+}
+function saveSnakeState() {
+    if (snakeGameOver || !snakeStarted) {
+        return;
+    }
+    Save.set('snake_state', {
+        snake: snake,
+        direction: snakeDirection,
+        nextDirection: snakeNextDirection,
+        food: snakeFood,
+        bonus: snakeBonus,
+        score: snakeScore,
+        level: snakeLevel,
+        foodEaten: snakeFoodEaten,
+        mode: snakeMode,
+        gameOver: false
+    });
+}
+function restartSnake() {
+    Save.set('snake_level', 1);
+    Save.remove('snake_state');
+    snakeLevel = 1;
+    initSnake();
+}
+function tryReviveSnake() {
+    if (!canShowAd()) {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+        return;
+    }
+    showAd().then(() => {
+        markAdShown();
+        Save.remove('snake_state');
+        document.getElementById('gameOverSnake').classList.remove('show');
+        initSnake();
+    }).catch(() => {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+    });
+}
+function startSnakeIfNeeded() {
+    if (!snakeStarted && !snakeInterval && !snakeGameOver) {
+        snakeStarted = true;
+        if (snakeMode === 'endless') snakeBonusTimer = setInterval(spawnBonus, 10000);
+        const speed = snakeMode === 'endless' ? snakeBaseSpeeds[snakeSpeedLevel - 1] : getSnakeSpeed(snakeLevel);
+        snakeInterval = setInterval(moveSnake, speed);
+    }
+}
+function setSnakeMode(mode) {
+    saveSnakeState();
+    Save.remove('snake_state');
+    snakeMode = mode;
+    document.querySelectorAll('[data-mode]').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+    document.getElementById('snakeSpeedSelector').style.display = mode === 'endless' ? 'flex' : 'none';
+    document.getElementById('snakeLevelDisplay').style.display = mode === 'levels' ? 'inline' : 'none';
+    document.getElementById('snakeScoreDisplay').style.display = mode === 'endless' ? 'inline' : 'none';
+    document.getElementById('snakeFoodDisplay').style.display = mode === 'levels' ? 'inline' : 'none';
+    if (snakeInterval) { clearInterval(snakeInterval); snakeInterval = null; }
+    if (snakeBonusTimer) { clearInterval(snakeBonusTimer); snakeBonusTimer = null; }
+    initSnake();
+}
+function setSnakeSpeed(level) {
+    snakeSpeedLevel = level;
+    document.querySelectorAll('#snakeSpeedSelector .level-btn').forEach(btn => btn.classList.toggle('active', +btn.dataset.level === level));
+    if (snakeMode === 'endless' && snakeInterval && !snakePaused && !snakeGameOver) {
+        clearInterval(snakeInterval);
+        snakeInterval = setInterval(moveSnake, snakeBaseSpeeds[level - 1]);
+    }
+}
+function buildSnakeWalls() { snakeWalls = snakeMode === 'levels' ? generateSnakePattern(snakeLevel) : []; }
+function spawnBonus() {
+    if (snakePaused || snakeMode !== 'endless' || !snakeStarted || snakeGameOver) return;
+    do { snakeBonus = {x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20)}; }
+    while (snake.some(s => s.x === snakeBonus.x && s.y === snakeBonus.y) || (snakeFood.x === snakeBonus.x && snakeFood.y === snakeBonus.y));
+    setTimeout(() => { if (snakeBonus && !snakePaused && !snakeGameOver) { snakeBonus = null; drawSnake(); } }, 5000);
+}
+function generateFood() {
+    do { snakeFood = {x: Math.floor(Math.random() * 20), y: Math.floor(Math.random() * 20)}; }
+    while (snake.some(s => s.x === snakeFood.x && s.y === snakeFood.y) || snakeWalls.some(w => w.x === snakeFood.x && w.y === snakeFood.y));
+}
+function toggleSnakePause() {
+    if (!snakeStarted || snakeGameOver) return;
+    snakePaused = !snakePaused;
+    document.getElementById('pauseSnake').classList.toggle('show', snakePaused);
+    updatePauseIcon('pauseBtnSnake', snakePaused);
+    if (snakePaused) { snakeNextDirection = snakeDirection; sndPause(); } else sndUnpause();
+}
+function checkSnakeLevelComplete() {
+    if (snakeMode === 'levels' && snakeFoodEaten >= SNAKE_FOOD_PER_LEVEL && !snakeGameOver) {
+        clearInterval(snakeInterval); snakeInterval = null; snakeStarted = false; snakeGameOver = true;
+        sndLevelUp();
+        Save.set('snake_level', snakeLevel + 1);
+        Save.remove('snake_state');
+        document.getElementById('snakeTitle').textContent = 'Уровень ' + snakeLevel + ' пройден!';
+        document.getElementById('snakeMessage').textContent = 'Съедено: ' + snakeFoodEaten + '/' + SNAKE_FOOD_PER_LEVEL;
+        document.getElementById('snakeReviveBtn').style.display = 'none';
+        document.getElementById('snakeNextBtn').style.display = 'inline-block';
+        document.getElementById('snakeRestartBtn').style.display = 'none';
+        document.getElementById('gameOverSnake').classList.add('show');
+    }
+}
+function nextSnakeLevel() {
+    snakeLevel++; snakeFoodEaten = 0;
+    document.getElementById('levelSnake').textContent = snakeLevel;
+    document.getElementById('snakeFoodCount').textContent = '0/' + SNAKE_FOOD_PER_LEVEL;
+    snake = [{x: 5, y: 10}, {x: 4, y: 10}, {x: 3, y: 10}];
+    snakeDirection = snakeNextDirection = 'right';
+    directionQueue = []; snakeStarted = false; snakeGameOver = false;
+    document.getElementById('gameOverSnake').classList.remove('show');
+    document.getElementById('snakeReviveBtn').style.display = 'none';
+    document.getElementById('snakeNextBtn').style.display = 'none';
+    document.getElementById('snakeRestartBtn').style.display = 'inline-block';
+    Save.remove('snake_state');
+    buildSnakeWalls(); drawStaticSnakeElements(); generateFood(); drawSnake();
+    if (snakeInterval) clearInterval(snakeInterval);
+    snakeInterval = null;
+}
+function gameOverSnake(won) {
+    snakeGameOver = true;
+    clearInterval(snakeInterval); snakeInterval = null;
+    if (snakeBonusTimer) { clearInterval(snakeBonusTimer); snakeBonusTimer = null; }
+    snakePaused = false; snakeStarted = false; directionQueue = [];
+    Save.remove('snake_state');
+    updatePauseIcon('pauseBtnSnake', snakePaused);
+    if (won) sndVictory(); else sndDeath();
+    if (snakeMode === 'endless') saveBest('best_snake_endless', snakeScore);
+    else saveBest('best_snake_levels', snakeScore);
+    document.getElementById('snakeTitle').textContent = won ? 'Победа!' : 'Игра окончена!';
+    document.getElementById('snakeMessage').textContent = won
+        ? (snakeMode === 'endless' ? 'Змейка заполнила всё поле!' : 'Все 15 уровней пройдены!')
+        : 'Счёт: ' + snakeScore;
+    document.getElementById('snakeReviveBtn').style.display = (snakeMode === 'levels' && !won) ? 'block' : 'none';
+    document.getElementById('snakeNextBtn').style.display = 'none';
+    document.getElementById('snakeRestartBtn').style.display = 'inline-block';
+    document.getElementById('gameOverSnake').classList.add('show');
+    updateBestDisplay('snake');
+}
+function moveSnake() {
+    if (snakePaused || snakeGameOver) return;
+    sndSnakeStep();
+    while (directionQueue.length > 0) {
+        const dir = directionQueue.shift();
+        const opp = {up: 'down', down: 'up', left: 'right', right: 'left'};
+        if (dir !== opp[snakeDirection]) { snakeNextDirection = dir; break; }
+    }
+    snakeDirection = snakeNextDirection;
+    const head = {...snake[0]};
+    if (snakeDirection === 'up') head.y--;
+    else if (snakeDirection === 'down') head.y++;
+    else if (snakeDirection === 'left') head.x--;
+    else if (snakeDirection === 'right') head.x++;
+    if (snakeMode === 'levels') {
+        if (head.x < 0) head.x = 19; if (head.x >= 20) head.x = 0;
+        if (head.y < 0) head.y = 19; if (head.y >= 20) head.y = 0;
+    }
+    if ((snakeMode === 'endless' && (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20)) ||
+        snakeWalls.some(w => w.x === head.x && w.y === head.y)) { gameOverSnake(false); return; }
+    const selfIndex = snake.findIndex(s => s.x === head.x && s.y === head.y);
+    if (selfIndex !== -1) {
+        if (snakeMode === 'endless') snake = snake.slice(0, selfIndex);
+        else { gameOverSnake(false); return; }
+    }
+    snake.unshift(head);
+    snakeFoodPulse = !snakeFoodPulse;
+    const basePoints = snakeMode === 'endless' ? 10 + (snakeSpeedLevel - 1) * 2 : 10;
+    const points = Math.round(basePoints * SCORE_MULT_SNAKE);
+    if (head.x === snakeFood.x && head.y === snakeFood.y) {
+        snakeScore += points;
+        document.getElementById('scoreSnake').textContent = snakeScore;
+        if (snakeMode === 'levels') {
+            snakeFoodEaten++;
+            document.getElementById('snakeFoodCount').textContent = snakeFoodEaten + '/' + SNAKE_FOOD_PER_LEVEL;
+        }
+        sndEat(); generateFood(); snakeFoodPulse = false; checkSnakeLevelComplete();
+    } else snake.pop();
+    if (snakeBonus && head.x === snakeBonus.x && head.y === snakeBonus.y) {
+        snakeScore += points * 2;
+        document.getElementById('scoreSnake').textContent = snakeScore;
+        sndBonus(); snakeBonus = null; checkSnakeLevelComplete();
+    }
+    if (snakeMode === 'endless' && snake.length >= 399) { gameOverSnake(true); return; }
+    updateBestDisplay('snake');
+    drawSnake();
+}
+function drawSnake() {
+    snakeCtx.clearRect(0, 0, 400, 400);
+    if (staticSnakeCanvas) snakeCtx.drawImage(staticSnakeCanvas, 0, 0);
+    snakeCtx.fillStyle = cachedFg;
+    if (snakeBonus) {
+        snakeCtx.beginPath(); snakeCtx.arc(snakeBonus.x * 20 + 10, snakeBonus.y * 20 + 10, 8, 0, Math.PI * 2); snakeCtx.fill();
+        snakeCtx.fillStyle = cachedBg;
+        snakeCtx.beginPath(); snakeCtx.arc(snakeBonus.x * 20 + 10, snakeBonus.y * 20 + 10, 4, 0, Math.PI * 2); snakeCtx.fill();
+        snakeCtx.fillStyle = cachedFg;
+    }
+    if (snakeFoodPulse) snakeCtx.fillRect(snakeFood.x * 20 + 2, snakeFood.y * 20 + 2, 16, 16);
+    else snakeCtx.fillRect(snakeFood.x * 20 + 1.25, snakeFood.y * 20 + 1.25, 17.5, 17.5);
+    for (let i = 1; i < snake.length; i++) {
+        snakeCtx.fillStyle = cachedFg;
+        snakeCtx.fillRect(snake[i].x * 20 + 1.25, snake[i].y * 20 + 1.25, 17.5, 17.5);
+    }
+    if (snake.length > 0) {
+        const h = snake[0]; const hx = h.x * 20, hy = h.y * 20;
+        if (snakeGlowCanvas) snakeCtx.drawImage(snakeGlowCanvas, hx - 4, hy - 4);
+        snakeCtx.fillStyle = cachedFg;
+        snakeCtx.fillRect(hx + 1.25, hy + 1.25, 17.5, 17.5);
+    }
+}
+function changeDirection(dir) {
+    if (snakeGameOver) return;
+    initAudio(); startSnakeIfNeeded();
+    if (snakePaused) return;
+    const opp = {up: 'down', down: 'up', left: 'right', right: 'left'};
+    const lastDir = directionQueue.length > 0 ? directionQueue[directionQueue.length - 1] : snakeDirection;
+    if (dir === opp[lastDir]) return;
+    if (dir === lastDir) return;
+    if (directionQueue.length < 2) directionQueue.push(dir);
+}
+
+// ============ МАДЖОНГ ============
+const mahjongSymbolsSVG = [
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="13" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" stroke-width="5"/></svg>',
+    '<svg viewBox="0 0 40 40"><rect x="16" y="4" width="8" height="32" fill="currentColor"/><rect x="4" y="16" width="32" height="8" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><rect x="7" y="7" width="26" height="26" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><rect x="7" y="7" width="26" height="26" fill="none" stroke="currentColor" stroke-width="5"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,5 35,34 5,34" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,35 35,6 5,6" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,4 36,20 20,36 4,20" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,3 24,15 37,15 26,23 30,36 20,28 10,36 14,23 3,15 16,15" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M20 35 C10 25 4 18 4 12 C4 6 10 4 15 6 C18 7 20 9 20 9 C20 9 22 7 25 6 C30 4 36 6 36 12 C36 18 30 25 20 35 Z" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="22,4 8,22 17,22 14,36 30,16 21,16" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M28 5 A17 17 0 1 0 28 35 A14 14 0 1 1 28 5 Z" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,4 34,20 24,20 24,36 16,36 16,20 6,20" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="4,20 20,6 20,16 36,16 36,24 20,24 20,34" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="13" cy="20" r="8" fill="currentColor"/><circle cx="27" cy="20" r="8" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><rect x="6" y="6" width="14" height="14" fill="currentColor"/><rect x="20" y="20" width="14" height="14" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M4 20 Q12 5 20 20 Q28 35 36 20" fill="none" stroke="currentColor" stroke-width="5"/></svg>',
+    '<svg viewBox="0 0 40 40"><polyline points="4,28 12,12 20,28 28,12 36,28" fill="none" stroke="currentColor" stroke-width="5"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,4 34,12 34,28 20,36 6,28 6,12" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="6,4 34,4 20,20 34,36 6,36 20,20" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="16" ry="10" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="20" cy="20" r="5" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="4"/><rect x="16" y="10" width="18" height="4" fill="currentColor"/><rect x="28" y="16" width="4" height="10" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="currentColor"/><line x1="20" y1="2" x2="20" y2="8" stroke="currentColor" stroke-width="4"/><line x1="20" y1="32" x2="20" y2="38" stroke="currentColor" stroke-width="4"/><line x1="2" y1="20" x2="8" y2="20" stroke="currentColor" stroke-width="4"/><line x1="32" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="4"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M20 4 C20 4 8 20 8 28 C8 34 13 36 20 36 C27 36 32 34 32 28 C32 20 20 4 20 4 Z" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M20 20 m0 2 a2 2 0 0 1 2 -2 a4 4 0 0 1 4 4 a6 6 0 0 1 -6 6 a8 8 0 0 1 -8 -8 a10 10 0 0 1 10 -10 a12 12 0 0 1 12 12" fill="none" stroke="currentColor" stroke-width="3"/></svg>',
+    '<svg viewBox="0 0 40 40"><polygon points="20,4 32,10 32,26 20,32 8,26 8,10" fill="none" stroke="currentColor" stroke-width="4"/><line x1="8" y1="10" x2="20" y2="16" stroke="currentColor" stroke-width="4"/><line x1="20" y1="16" x2="32" y2="10" stroke="currentColor" stroke-width="4"/><line x1="20" y1="16" x2="20" y2="32" stroke="currentColor" stroke-width="4"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="4"/><line x1="20" y1="13" x2="20" y2="34" stroke="currentColor" stroke-width="4"/><path d="M10 28 Q20 36 30 28" fill="none" stroke="currentColor" stroke-width="4"/><line x1="8" y1="16" x2="32" y2="16" stroke="currentColor" stroke-width="4"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="4"/><line x1="20" y1="20" x2="20" y2="10" stroke="currentColor" stroke-width="4"/><line x1="20" y1="20" x2="28" y2="24" stroke="currentColor" stroke-width="4"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M8 8 C14 8 20 12 20 16 C20 12 26 8 32 8 L32 34 C26 34 20 30 20 26 C20 30 14 34 8 34 Z" fill="currentColor"/><line x1="20" y1="16" x2="20" y2="26" stroke="currentColor" stroke-width="3"/></svg>',
+    '<svg viewBox="0 0 40 40"><circle cx="12" cy="28" r="6" fill="currentColor"/><line x1="18" y1="28" x2="18" y2="8" stroke="currentColor" stroke-width="4"/><line x1="18" y1="8" x2="28" y2="12" stroke="currentColor" stroke-width="4"/></svg>',
+    '<svg viewBox="0 0 40 40"><line x1="8" y1="4" x2="8" y2="36" stroke="currentColor" stroke-width="4"/><polygon points="8,4 30,12 8,20" fill="currentColor"/></svg>',
+    '<svg viewBox="0 0 40 40"><path d="M20 4 C28 10 32 22 30 34 C28 38 24 38 24 34 C24 30 22 28 20 28 C18 28 16 30 16 34 C16 38 12 38 10 34 C8 22 12 10 20 4 Z" fill="currentColor"/></svg>'
+];
+let mahjongTiles = [], mahjongSelected = null, mahjongSecondSelected = null,
+    mahjongPairs = 0, mahjongTotalPairs = 16, mahjongWaiting = false, mahjongPairCount = 16, mahjongMatched = false,
+    mahjongTimerInterval = null, mahjongElapsed = 0, mahjongPaused = false, mahjongStarted = false;
+function formatTimer(sec) {
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+function updateMahjongTimer() {
+    document.getElementById('mahjongTimerDisplay').textContent = formatTimer(mahjongElapsed);
+}
+function initMahjong() {
+    const saved = Save.get('mahjong_state', null);
+    if (saved && saved.tiles && !saved.gameOver && saved.pairCount === mahjongPairCount) {
+        mahjongTiles = saved.tiles;
+        mahjongPairs = saved.pairs || 0;
+        mahjongTotalPairs = saved.totalPairs || mahjongPairCount;
+        mahjongElapsed = saved.elapsed || 0;
+        mahjongPaused = false;
+        mahjongStarted = false;
+        mahjongWaiting = false;
+        mahjongMatched = false;
+        mahjongSelected = null;
+        mahjongSecondSelected = null;
+        document.getElementById('pairsMahjong').textContent = mahjongPairs;
+        document.getElementById('totalPairsMahjong').textContent = mahjongTotalPairs;
+        document.getElementById('gameOverMahjong').classList.remove('show');
+        document.getElementById('pauseMahjong').classList.remove('show');
+        document.getElementById('mahjongBoard').className = 'mahjong-board pairs-' + mahjongTotalPairs;
+        updateMahjongTimer();
+        updatePauseIcon('pauseBtnMahjong', mahjongPaused);
+        renderMahjong();
+        if (mahjongTimerInterval) { clearInterval(mahjongTimerInterval); mahjongTimerInterval = null; }
+        return;
+    }
+    mahjongSelected = mahjongSecondSelected = null;
+    mahjongPairs = 0; mahjongTotalPairs = mahjongPairCount; mahjongWaiting = false; mahjongMatched = false;
+    mahjongElapsed = 0; mahjongPaused = false; mahjongStarted = false;
+    if (mahjongTimerInterval) { clearInterval(mahjongTimerInterval); mahjongTimerInterval = null; }
+    updateMahjongTimer();
+    let symbols = [];
+    for (let i = 0; i < mahjongTotalPairs; i++) symbols.push(i, i);
+    for (let i = symbols.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [symbols[i], symbols[j]] = [symbols[j], symbols[i]]; }
+    const rows = mahjongTotalPairs === 16 ? 4 : 8;
+    mahjongTiles = [];
+    for (let i = 0; i < rows; i++) for (let j = 0; j < 8; j++) mahjongTiles.push({id: i * 8 + j, symbolIndex: symbols[i * 8 + j], matched: false, flipped: false});
+    document.getElementById('pairsMahjong').textContent = '0';
+    document.getElementById('totalPairsMahjong').textContent = mahjongTotalPairs;
+    document.getElementById('gameOverMahjong').classList.remove('show');
+    document.getElementById('pauseMahjong').classList.remove('show');
+    document.getElementById('mahjongBoard').className = 'mahjong-board pairs-' + mahjongTotalPairs;
+    updatePauseIcon('pauseBtnMahjong', mahjongPaused);
+    renderMahjong();
+}
+function saveMahjongState() {
+    if (mahjongStarted && mahjongPairs < mahjongTotalPairs && !document.getElementById('gameOverMahjong').classList.contains('show')) {
+        mahjongTiles.forEach(t => { if (!t.matched) t.flipped = false; });
+        Save.set('mahjong_state', {
+            tiles: mahjongTiles,
+            pairs: mahjongPairs,
+            totalPairs: mahjongTotalPairs,
+            elapsed: mahjongElapsed,
+            pairCount: mahjongPairCount,
+            gameOver: false
+        });
+    } else {
+        Save.remove('mahjong_state');
+    }
+}
+function setMahjongPairCount(count) {
+    mahjongPairCount = count;
+    Save.remove('mahjong_state');
+    document.querySelectorAll('#mahjongPairsSelector .level-btn').forEach(btn => btn.classList.toggle('active', +btn.dataset.pairs === count));
+    initMahjong();
+}
+function renderMahjong() {
+    const board = document.getElementById('mahjongBoard');
+    board.innerHTML = '';
+    mahjongTiles.forEach(tile => {
+        const el = document.createElement('div');
+        el.className = 'mahjong-tile' + (tile.matched ? ' matched' : tile.flipped ? ' flipped' : '');
+        const sym = document.createElement('span');
+        sym.className = 'mahjong-symbol';
+        sym.innerHTML = mahjongSymbolsSVG[tile.symbolIndex];
+        el.appendChild(sym);
+        el.onclick = () => selectMahjongTile(tile);
+        board.appendChild(el);
+    });
+}
+function selectMahjongTile(tile) {
+    if (tile.matched || tile.flipped) return;
+    if (mahjongMatched) return;
+    if (mahjongPaused) return;
+    initAudio();
+    if (!mahjongStarted) {
+        mahjongStarted = true;
+        mahjongTimerInterval = setInterval(() => {
+            if (!mahjongPaused) { mahjongElapsed++; updateMahjongTimer(); }
+        }, 1000);
+    }
+    if (mahjongWaiting) {
+        if (mahjongSelected) mahjongSelected.flipped = false;
+        if (mahjongSecondSelected) mahjongSecondSelected.flipped = false;
+        mahjongSelected = mahjongSecondSelected = null;
+        mahjongWaiting = false;
+        tile.flipped = true; mahjongSelected = tile; sndClick(); renderMahjong(); return;
+    }
+    if (!mahjongSelected) { tile.flipped = true; mahjongSelected = tile; sndClick(); renderMahjong(); }
+    else if (!mahjongSecondSelected && mahjongSelected.id !== tile.id) {
+        tile.flipped = true; mahjongSecondSelected = tile; sndClick();
+        if (mahjongSelected.symbolIndex === tile.symbolIndex) {
+            mahjongMatched = true; sndMatch();
+            setTimeout(() => {
+                mahjongSelected.matched = tile.matched = true;
+                mahjongPairs++;
+                document.getElementById('pairsMahjong').textContent = mahjongPairs;
+                mahjongSelected = mahjongSecondSelected = null;
+                mahjongMatched = false;
+                renderMahjong();
+                if (mahjongPairs === mahjongTotalPairs) {
+                    sndVictory();
+                    if (mahjongTimerInterval) { clearInterval(mahjongTimerInterval); mahjongTimerInterval = null; }
+                    document.getElementById('mahjongFinalTime').textContent = formatTimer(mahjongElapsed);
+                    if (mahjongTotalPairs === 16) saveBestTime('best_mahjong_16', mahjongElapsed);
+                    else saveBestTime('best_mahjong_32', mahjongElapsed);
+                    document.getElementById('gameOverMahjong').classList.add('show');
+                    Save.remove('mahjong_state');
+                } else {
+                    saveMahjongState();
+                }
+            }, 500);
+        } else mahjongWaiting = true;
+        renderMahjong();
+    }
+}
+function toggleMahjongPause() {
+    if (!mahjongStarted) return;
+    mahjongPaused = !mahjongPaused;
+    document.getElementById('pauseMahjong').classList.toggle('show', mahjongPaused);
+    updatePauseIcon('pauseBtnMahjong', mahjongPaused);
+    if (mahjongPaused) sndPause(); else sndUnpause();
+}
+
+// ============ АРКАНОИД ============
+let arkanoidCtx, arkanoidPaddleX = 150, arkanoidPaddleDir = null;
+let arkanoidBalls = [], arkanoidBricks = [], arkanoidBricksAlive = 0, arkanoidScore = 0, arkanoidLives = 3, arkanoidLevel = 1, arkanoidPaused = false, arkanoidStarted = false;
+let arkanoidBonuses = [], arkanoidPaddleW = 60;
+let arkanoidFireBall = false, arkanoidFireTimer = null;
+let arkanoidLaser = false, arkanoidLaserTimer = null;
+let arkanoidLasers = [], arkanoidLaserCooldown = 0;
+let arkanoidWideTimer = null, arkanoidNarrowTimer = null;
+let arkanoidLastTime = 0, arkanoidAnimationId = null;
+let lastArkanoidBonus = null, staticArkanoidCanvas = null, staticArkanoidCtx = null;
+let arkanoidBallStuck = true, arkanoidStuckX = 30;
+const ARK_W = 360, ARK_H = 480, PADDLE_H = 10;
+const ARKANOID_BASE_SPEED = 140;
+const ARKANOID_SPEED_MULTIPLIER = 1.656;
+const ARKANOID_LEVEL_STEP = 0.05;
+const ARKANOID_MAX_SPEED = 140 * (1.656 + 19 * 0.05);
+const AD_COOLDOWN = 30000;
+
+function canShowAd() {
+    const last = Save.get('last_ad_shown', 0);
+    return (Date.now() - last) >= AD_COOLDOWN;
+}
+function markAdShown() {
+    Save.set('last_ad_shown', Date.now());
+}
+
+function getArkanoidSpeed() {
+    const speed = ARKANOID_BASE_SPEED * (ARKANOID_SPEED_MULTIPLIER + (arkanoidLevel - 1) * ARKANOID_LEVEL_STEP);
+    return Math.min(speed, ARKANOID_MAX_SPEED);
+}
+function normalizeBall(ball) {
+    const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+    if (currentSpeed > 0) {
+        const targetSpeed = getArkanoidSpeed();
+        ball.dx = (ball.dx / currentSpeed) * targetSpeed;
+        ball.dy = (ball.dy / currentSpeed) * targetSpeed;
+    }
+}
+function initArkanoid() {
+    arkanoidCtx = document.getElementById('canvasArkanoid').getContext('2d', { alpha: false });
+    if (!staticArkanoidCanvas) {
+        staticArkanoidCanvas = document.createElement('canvas');
+        staticArkanoidCanvas.width = ARK_W; staticArkanoidCanvas.height = ARK_H;
+        staticArkanoidCtx = staticArkanoidCanvas.getContext('2d', { alpha: false });
+    }
+    const saved = Save.get('arkanoid_state', null);
+    if (saved && saved.bricks && !saved.gameOver) {
+        arkanoidBricks = saved.bricks;
+        arkanoidBricksAlive = arkanoidBricks.filter(b => b.alive).length;
+        arkanoidBalls = saved.balls || [{x: saved.paddleX + 30, y: ARK_H - PADDLE_H - 6, dx: 0, dy: 0, radius: 6}];
+        arkanoidPaddleX = saved.paddleX || (ARK_W / 2 - 30);
+        arkanoidPaddleW = saved.paddleW || 60;
+        arkanoidScore = saved.score || 0;
+        arkanoidLives = saved.lives || 3;
+        arkanoidLevel = saved.level || 1;
+        arkanoidBonuses = saved.bonuses || [];
+        arkanoidFireBall = saved.fireBall || false;
+        arkanoidLaser = saved.laser || false;
+        arkanoidLasers = saved.lasers || [];
+        arkanoidLaserCooldown = saved.laserCooldown || 0;
+        arkanoidBallStuck = saved.ballStuck !== undefined ? saved.ballStuck : true;
+        arkanoidStuckX = saved.stuckX || 30;
+        arkanoidStarted = false;
+        arkanoidPaused = false;
+        lastArkanoidBonus = saved.lastArkanoidBonus || null;
+        if (arkanoidFireBall && !arkanoidFireTimer) {
+            arkanoidFireTimer = setTimeout(() => { arkanoidFireBall = false; }, 10000);
+        }
+        if (arkanoidLaser && !arkanoidLaserTimer) {
+            arkanoidLaserTimer = setTimeout(() => { arkanoidLaser = false; }, 10000);
+        }
+        document.getElementById('scoreArkanoid').textContent = arkanoidScore;
+        document.getElementById('livesArkanoid').textContent = arkanoidLives;
+        document.getElementById('levelArkanoid').textContent = arkanoidLevel;
+        drawBricksToStatic();
+        drawArkanoid();
+    } else {
+        arkanoidPaddleW = 60; arkanoidPaddleX = ARK_W / 2 - arkanoidPaddleW / 2;
+        arkanoidPaddleDir = null; arkanoidScore = 0; arkanoidLives = 3;
+        arkanoidLevel = Save.get('arkanoid_level', 1);
+        arkanoidPaused = false; arkanoidStarted = false; arkanoidBonuses = [];
+        arkanoidFireBall = false; arkanoidLaser = false; arkanoidLasers = []; arkanoidLaserCooldown = 0;
+        arkanoidLastTime = 0; lastArkanoidBonus = null; arkanoidBallStuck = true; arkanoidStuckX = 30;
+        if (arkanoidFireTimer) { clearTimeout(arkanoidFireTimer); arkanoidFireTimer = null; }
+        if (arkanoidLaserTimer) { clearTimeout(arkanoidLaserTimer); arkanoidLaserTimer = null; }
+        if (arkanoidWideTimer) { clearTimeout(arkanoidWideTimer); arkanoidWideTimer = null; }
+        if (arkanoidNarrowTimer) { clearTimeout(arkanoidNarrowTimer); arkanoidNarrowTimer = null; }
+        if (arkanoidAnimationId) { cancelAnimationFrame(arkanoidAnimationId); arkanoidAnimationId = null; }
+        document.getElementById('scoreArkanoid').textContent = '0';
+        document.getElementById('livesArkanoid').textContent = '3';
+        document.getElementById('levelArkanoid').textContent = arkanoidLevel;
+        buildBricks(); drawBricksToStatic(); resetBalls(); drawArkanoid();
+    }
+    document.getElementById('gameOverArkanoid').classList.remove('show');
+    document.getElementById('pauseArkanoid').classList.remove('show');
+    document.getElementById('arkanoidReviveBtn').style.display = 'none';
+    document.getElementById('arkanoidNextBtn').style.display = 'none';
+    document.getElementById('arkanoidRestartBtn').style.display = 'inline-block';
+    updatePauseIcon('pauseBtnArkanoid', arkanoidPaused);
+    updateBestDisplay('arkanoid');
+}
+function saveArkanoidState() {
+    if (arkanoidStarted && !document.getElementById('gameOverArkanoid').classList.contains('show')) {
+        Save.set('arkanoid_state', {
+            bricks: arkanoidBricks,
+            balls: arkanoidBalls,
+            paddleX: arkanoidPaddleX,
+            paddleW: arkanoidPaddleW,
+            score: arkanoidScore,
+            lives: arkanoidLives,
+            level: arkanoidLevel,
+            bonuses: arkanoidBonuses,
+            fireBall: arkanoidFireBall,
+            laser: arkanoidLaser,
+            lasers: arkanoidLasers,
+            laserCooldown: arkanoidLaserCooldown,
+            ballStuck: arkanoidBallStuck,
+            stuckX: arkanoidStuckX,
+            lastArkanoidBonus: lastArkanoidBonus,
+            gameOver: false
+        });
+    }
+}
+function restartArkanoid() {
+    Save.set('arkanoid_level', 1);
+    Save.remove('arkanoid_state');
+    arkanoidLevel = 1;
+    initArkanoid();
+}
+function tryReviveArkanoid() {
+    if (!canShowAd()) {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+        return;
+    }
+    showAd().then(() => {
+        markAdShown();
+        arkanoidLives = 1;
+        arkanoidStarted = true;
+        arkanoidPaused = false;
+        arkanoidPaddleW = 60;
+        arkanoidPaddleX = ARK_W / 2 - arkanoidPaddleW / 2;
+        arkanoidFireBall = false;
+        arkanoidLaser = false;
+        arkanoidLasers = [];
+        lastArkanoidBonus = null;
+        arkanoidBallStuck = true;
+        arkanoidStuckX = 30;
+        resetBalls();
+        document.getElementById('gameOverArkanoid').classList.remove('show');
+        document.getElementById('livesArkanoid').textContent = arkanoidLives;
+        Save.remove('arkanoid_state');
+        arkanoidLastTime = performance.now();
+        if (arkanoidAnimationId) cancelAnimationFrame(arkanoidAnimationId);
+        arkanoidAnimationId = requestAnimationFrame(updateArkanoid);
+    }).catch(() => {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+    });
+}
+function drawBricksToStatic() {
+    if (!staticArkanoidCtx) return;
+    staticArkanoidCtx.fillStyle = cachedBg; staticArkanoidCtx.fillRect(0, 0, ARK_W, ARK_H);
+    for (let i = 0; i < arkanoidBricks.length; i++) {
+        const brick = arkanoidBricks[i];
+        if (!brick.alive) continue;
+        if (brick.strength === 2) {
+            staticArkanoidCtx.fillStyle = cachedFg; staticArkanoidCtx.fillRect(brick.x, brick.y, brick.w, brick.h);
+            staticArkanoidCtx.fillStyle = cachedBg; staticArkanoidCtx.fillRect(brick.x + 2, brick.y + 2, brick.w - 4, brick.h - 4);
+        } else {
+            staticArkanoidCtx.fillStyle = cachedFg; staticArkanoidCtx.fillRect(brick.x, brick.y, brick.w, brick.h);
+        }
+    }
+}
+function eraseBrick(brick) { if (!staticArkanoidCtx) return; staticArkanoidCtx.fillStyle = cachedBg; staticArkanoidCtx.fillRect(brick.x - 1, brick.y - 1, brick.w + 2, brick.h + 2); }
+function redrawBrickAsNormal(brick) { if (!staticArkanoidCtx) return; staticArkanoidCtx.fillStyle = cachedFg; staticArkanoidCtx.fillRect(brick.x, brick.y, brick.w, brick.h); }
+function startArkanoidIfNeeded() {
+    if (!arkanoidStarted) {
+        arkanoidStarted = true; arkanoidLastTime = performance.now();
+        arkanoidAnimationId = requestAnimationFrame(updateArkanoid);
+    }
+}
+function resetBalls() {
+    arkanoidPaddleW = 60; arkanoidStuckX = arkanoidPaddleW / 2;
+    arkanoidBalls = [{x: arkanoidPaddleX + arkanoidPaddleW / 2, y: ARK_H - PADDLE_H - 6, dx: 0, dy: 0, radius: 6}];
+    arkanoidBallStuck = true;
+}
+function buildBricks() {
+    const cols = 8, brickH = 16, gap = 4, topOffset = 35;
+    const brickW = (ARK_W - gap * (cols + 1)) / cols;
+    const rows = 4 + (arkanoidLevel - 1) % 15;
+    arkanoidBricks = []; arkanoidBricksAlive = 0;
+    const patterns = ['full', 'checker', 'diamond', 'cross', 'stripes', 'frame', 'zigzag', 'dots', 'pyramid', 'random'];
+    const pattern = patterns[((arkanoidLevel - 1) % 15) % 10];
+    const hardLevel = arkanoidLevel > 5;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        let alive = true;
+        if (pattern === 'checker' && (r + c) % 2 === 0) alive = false;
+        else if (pattern === 'diamond' && Math.abs(r - (rows - 1) / 2) + Math.abs(c - 3.5) > Math.min(rows, cols) / 2) alive = false;
+        else if (pattern === 'cross' && r !== Math.floor((rows - 1) / 2) && c !== 3 && c !== 4) alive = false;
+        else if (pattern === 'stripes' && r % 3 === 1) alive = false;
+        else if (pattern === 'frame' && r > 1 && r < rows - 2 && c > 1 && c < cols - 2) alive = false;
+        else if (pattern === 'zigzag' && c % 3 === r % 3) alive = false;
+        else if (pattern === 'dots' && (r + c) % 3 !== 0) alive = false;
+        else if (pattern === 'pyramid' && (c < r || c >= cols - r)) alive = false;
+        else if (pattern === 'random' && Math.random() < 0.25) alive = false;
+        if (alive) {
+            arkanoidBricks.push({x: gap + c * (brickW + gap), y: topOffset + r * (brickH + gap), w: brickW, h: brickH, alive: true, strength: hardLevel && (r === 0 || r === rows - 1) ? 2 : 1});
+            arkanoidBricksAlive++;
+        }
+    }
+}
+function spawnArkanoidBonus(x, y) {
+    if (Math.random() > 0.07) return;
+    const types = ['multiball','multiball','multiball','multiball','multiball','fireball','fireball','fireball','fireball','fireball','laser','laser','laser','laser','widepaddle','widepaddle','widepaddle','narrowpaddle','narrowpaddle','narrowpaddle'];
+    if (arkanoidLevel >= 5) types.push('life', 'life');
+    let filtered = types;
+    if (lastArkanoidBonus) { filtered = types.filter(t => t !== lastArkanoidBonus); if (filtered.length === 0) filtered = types; }
+    const type = filtered[Math.floor(Math.random() * filtered.length)];
+    lastArkanoidBonus = type;
+    arkanoidBonuses.push({x, y, type});
+}
+function toggleArkanoidPause() {
+    if (!arkanoidStarted) return;
+    arkanoidPaused = !arkanoidPaused;
+    document.getElementById('pauseArkanoid').classList.toggle('show', arkanoidPaused);
+    updatePauseIcon('pauseBtnArkanoid', arkanoidPaused);
+    if (arkanoidPaused) { arkanoidPaddleDir = null; sndPause(); }
+    else { arkanoidLastTime = performance.now(); arkanoidAnimationId = requestAnimationFrame(updateArkanoid); sndUnpause(); }
+}
+function startPaddle(dir) {
+    initAudio(); startArkanoidIfNeeded();
+    if (!arkanoidPaused) {
+        arkanoidPaddleDir = dir;
+        if (arkanoidBallStuck && arkanoidBalls.length > 0) {
+            const ball = arkanoidBalls[0]; const speed = getArkanoidSpeed();
+            ball.dy = -speed * 0.8;
+            ball.dx = dir === 'left' ? speed * 0.6 : -speed * 0.6;
+            normalizeBall(ball); arkanoidBallStuck = false;
+        }
+    }
+}
+function stopPaddle() { arkanoidPaddleDir = null; }
+function applyArkanoidBonus(type) {
+    sndBonus();
+    if (type === 'multiball') {
+        const newBalls = [];
+        for (let i = 0; i < arkanoidBalls.length; i++) {
+            const ball = arkanoidBalls[i];
+            const currentAngle = Math.atan2(ball.dy, ball.dx);
+            const speed = getArkanoidSpeed();
+            for (let k = -1; k <= 1; k++) {
+                const angle = currentAngle + k * Math.PI / 6;
+                newBalls.push({x: ball.x, y: ball.y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, radius: ball.radius});
+            }
+        }
+        arkanoidBalls = newBalls;
+    } else if (type === 'life') { arkanoidLives++; document.getElementById('livesArkanoid').textContent = arkanoidLives; }
+    else if (type === 'widepaddle') { arkanoidPaddleW = 90; if (arkanoidWideTimer) clearTimeout(arkanoidWideTimer); arkanoidWideTimer = setTimeout(() => { arkanoidPaddleW = 60; }, 20000); }
+    else if (type === 'narrowpaddle') { arkanoidPaddleW = 45; if (arkanoidNarrowTimer) clearTimeout(arkanoidNarrowTimer); arkanoidNarrowTimer = setTimeout(() => { arkanoidPaddleW = 60; }, 20000); }
+    else if (type === 'fireball') { arkanoidFireBall = true; if (arkanoidFireTimer) clearTimeout(arkanoidFireTimer); arkanoidFireTimer = setTimeout(() => { arkanoidFireBall = false; }, 10000); }
+    else if (type === 'laser') { arkanoidLaser = true; if (arkanoidLaserTimer) clearTimeout(arkanoidLaserTimer); arkanoidLaserTimer = setTimeout(() => { arkanoidLaser = false; }, 10000); }
+}
+function nextArkanoidLevel() {
+    arkanoidLevel++;
+    Save.set('arkanoid_level', arkanoidLevel);
+    Save.remove('arkanoid_state');
+    document.getElementById('levelArkanoid').textContent = arkanoidLevel;
+    document.getElementById('gameOverArkanoid').classList.remove('show');
+    document.getElementById('arkanoidReviveBtn').style.display = 'none';
+    document.getElementById('arkanoidNextBtn').style.display = 'none';
+    document.getElementById('arkanoidRestartBtn').style.display = 'inline-block';
+    arkanoidBonuses = []; arkanoidPaddleW = 60; arkanoidBalls = [];
+    arkanoidFireBall = false; arkanoidLaser = false; arkanoidLasers = []; arkanoidLaserCooldown = 0;
+    lastArkanoidBonus = null; arkanoidBallStuck = true;
+    if (arkanoidFireTimer) { clearTimeout(arkanoidFireTimer); arkanoidFireTimer = null; }
+    if (arkanoidLaserTimer) { clearTimeout(arkanoidLaserTimer); arkanoidLaserTimer = null; }
+    if (arkanoidWideTimer) { clearTimeout(arkanoidWideTimer); arkanoidWideTimer = null; }
+    if (arkanoidNarrowTimer) { clearTimeout(arkanoidNarrowTimer); arkanoidNarrowTimer = null; }
+    buildBricks(); drawBricksToStatic();
+    arkanoidPaddleX = ARK_W / 2 - arkanoidPaddleW / 2;
+    resetBalls();
+    arkanoidStarted = true; arkanoidLastTime = performance.now();
+    if (arkanoidAnimationId) cancelAnimationFrame(arkanoidAnimationId);
+    arkanoidAnimationId = requestAnimationFrame(updateArkanoid);
+    drawArkanoid();
+}
+function updateArkanoid(timestamp) {
+    if (!arkanoidStarted) return;
+    if (arkanoidPaused) { arkanoidAnimationId = requestAnimationFrame(updateArkanoid); return; }
+    const deltaTime = Math.min((timestamp - arkanoidLastTime) / 1000, 0.1);
+    arkanoidLastTime = timestamp;
+    if (arkanoidPaddleDir === 'left') arkanoidPaddleX = Math.max(0, arkanoidPaddleX - 250 * deltaTime);
+    else if (arkanoidPaddleDir === 'right') arkanoidPaddleX = Math.min(ARK_W - arkanoidPaddleW, arkanoidPaddleX + 250 * deltaTime);
+    if (arkanoidBallStuck && arkanoidBalls.length > 0) { arkanoidBalls[0].x = arkanoidPaddleX + arkanoidStuckX; arkanoidBalls[0].y = ARK_H - PADDLE_H - arkanoidBalls[0].radius; }
+    for (let i = arkanoidBonuses.length - 1; i >= 0; i--) {
+        const bonus = arkanoidBonuses[i];
+        bonus.y += 150 * deltaTime;
+        if (bonus.y >= ARK_H - PADDLE_H && bonus.x >= arkanoidPaddleX && bonus.x <= arkanoidPaddleX + arkanoidPaddleW) { applyArkanoidBonus(bonus.type); arkanoidBonuses.splice(i, 1); }
+        else if (bonus.y > ARK_H) arkanoidBonuses.splice(i, 1);
+    }
+    if (arkanoidLaser) { if (arkanoidLaserCooldown <= 0) { arkanoidLaserCooldown = 1.0; arkanoidLasers.push({x: arkanoidPaddleX + 5, y: ARK_H - PADDLE_H - 5, active: true}); arkanoidLasers.push({x: arkanoidPaddleX + arkanoidPaddleW - 5, y: ARK_H - PADDLE_H - 5, active: true}); sndLaser(); } }
+    if (arkanoidLaserCooldown > 0) arkanoidLaserCooldown -= deltaTime;
+    for (let i = 0; i < arkanoidLasers.length; i++) {
+        const laser = arkanoidLasers[i];
+        laser.y -= 600 * deltaTime;
+        if (laser.y < 0) { laser.active = false; continue; }
+        for (let j = 0; j < arkanoidBricks.length; j++) {
+            const brick = arkanoidBricks[j];
+            if (!brick.alive) continue;
+            if (laser.x >= brick.x && laser.x <= brick.x + brick.w && laser.y <= brick.y + brick.h && laser.y >= brick.y) {
+                brick.strength--;
+                if (brick.strength <= 0) { brick.alive = false; arkanoidBricksAlive--; arkanoidScore += Math.round(10 * SCORE_MULT_ARKANOID); eraseBrick(brick); spawnArkanoidBonus(brick.x + brick.w / 2, brick.y + brick.h / 2); sndBreak(); }
+                else redrawBrickAsNormal(brick);
+                laser.active = false;
+                document.getElementById('scoreArkanoid').textContent = arkanoidScore;
+                updateBestDisplay('arkanoid');
+                break;
+            }
+        }
+    }
+    arkanoidLasers = arkanoidLasers.filter(l => l.active);
+    for (let b = 0; b < arkanoidBalls.length; b++) {
+        const ball = arkanoidBalls[b];
+        ball.x += ball.dx * deltaTime; ball.y += ball.dy * deltaTime;
+        if (ball.x - ball.radius <= 0) { ball.x = ball.radius; ball.dx = Math.abs(ball.dx); sndWallBounce(); }
+        if (ball.x + ball.radius >= ARK_W) { ball.x = ARK_W - ball.radius; ball.dx = -Math.abs(ball.dx); sndWallBounce(); }
+        if (ball.y - ball.radius <= 0) { ball.dy = Math.abs(ball.dy); sndWallBounce(); }
+        if (ball.y + ball.radius >= ARK_H - PADDLE_H && ball.x >= arkanoidPaddleX && ball.x <= arkanoidPaddleX + arkanoidPaddleW && ball.dy > 0) {
+            ball.dy = -Math.abs(ball.dy);
+            const hitPos = (ball.x - arkanoidPaddleX) / arkanoidPaddleW;
+            ball.dx = (hitPos - 0.5) * getArkanoidSpeed() * 1.5;
+            normalizeBall(ball); sndBounce();
+        }
+        const hitRadius = ball.radius + 2;
+        const ballTop = ball.y - hitRadius, ballBottom = ball.y + hitRadius;
+        for (let j = 0; j < arkanoidBricks.length; j++) {
+            const brick = arkanoidBricks[j];
+            if (!brick.alive) continue;
+            if (brick.y + brick.h < ballTop || brick.y > ballBottom) continue;
+            if (ball.x >= brick.x - hitRadius && ball.x <= brick.x + brick.w + hitRadius && ball.y - hitRadius <= brick.y + brick.h && ball.y + hitRadius >= brick.y) {
+                if (arkanoidFireBall) { brick.strength = 0; brick.alive = false; arkanoidBricksAlive--; arkanoidScore += Math.round(10 * SCORE_MULT_ARKANOID); eraseBrick(brick); spawnArkanoidBonus(brick.x + brick.w / 2, brick.y + brick.h / 2); sndBreak(); }
+                else {
+                    brick.strength--;
+                    if (brick.strength <= 0) { brick.alive = false; arkanoidBricksAlive--; arkanoidScore += Math.round(10 * SCORE_MULT_ARKANOID); eraseBrick(brick); spawnArkanoidBonus(brick.x + brick.w / 2, brick.y + brick.h / 2); sndBreak(); }
+                    else { redrawBrickAsNormal(brick); sndHit(); }
+                    const overlapX = Math.min(ball.x + hitRadius, brick.x + brick.w) - Math.max(ball.x - hitRadius, brick.x);
+                    const overlapY = Math.min(ball.y + hitRadius, brick.y + brick.h) - Math.max(ball.y - hitRadius, brick.y);
+                    if (overlapX < overlapY) ball.dx = -ball.dx; else ball.dy = -ball.dy;
+                    normalizeBall(ball);
+                }
+                document.getElementById('scoreArkanoid').textContent = arkanoidScore;
+                updateBestDisplay('arkanoid');
+                break;
+            }
+        }
+    }
+    arkanoidBalls = arkanoidBalls.filter(ball => ball.y - ball.radius <= ARK_H);
+    if (arkanoidBalls.length === 0) {
+        arkanoidLives--; document.getElementById('livesArkanoid').textContent = arkanoidLives;
+        sndDeath();
+        if (arkanoidLives <= 0) { 
+            arkanoidPaused = true;
+            gameOverArkanoid(false);
+            return;
+        }
+        arkanoidPaddleW = 60; arkanoidPaddleX = ARK_W / 2 - arkanoidPaddleW / 2;
+        arkanoidFireBall = false; arkanoidLaser = false; arkanoidLasers = []; lastArkanoidBonus = null;
+        if (arkanoidFireTimer) { clearTimeout(arkanoidFireTimer); arkanoidFireTimer = null; }
+        if (arkanoidLaserTimer) { clearTimeout(arkanoidLaserTimer); arkanoidLaserTimer = null; }
+        if (arkanoidWideTimer) { clearTimeout(arkanoidWideTimer); arkanoidWideTimer = null; }
+        if (arkanoidNarrowTimer) { clearTimeout(arkanoidNarrowTimer); arkanoidNarrowTimer = null; }
+        resetBalls();
+    }
+    if (arkanoidBricksAlive <= 0) {
+        arkanoidStarted = false;
+        if (arkanoidAnimationId) { cancelAnimationFrame(arkanoidAnimationId); arkanoidAnimationId = null; }
+        sndLevelUp();
+        document.getElementById('arkanoidTitle').textContent = 'Уровень ' + arkanoidLevel + ' пройден!';
+        document.getElementById('arkanoidMessage').textContent = 'Счёт: ' + arkanoidScore;
+        document.getElementById('arkanoidReviveBtn').style.display = 'none';
+        document.getElementById('arkanoidNextBtn').style.display = 'inline-block';
+        document.getElementById('arkanoidRestartBtn').style.display = 'none';
+        document.getElementById('gameOverArkanoid').classList.add('show');
+        return;
+    }
+    drawArkanoid();
+    arkanoidAnimationId = requestAnimationFrame(updateArkanoid);
+}
+function drawArkanoid() {
+    arkanoidCtx.clearRect(0, 0, ARK_W, ARK_H);
+    if (staticArkanoidCanvas) arkanoidCtx.drawImage(staticArkanoidCanvas, 0, 0);
+    for (let i = 0; i < arkanoidBonuses.length; i++) {
+        const bonus = arkanoidBonuses[i];
+        arkanoidCtx.fillStyle = cachedFg;
+        arkanoidCtx.beginPath(); arkanoidCtx.arc(bonus.x, bonus.y, 8, 0, Math.PI * 2); arkanoidCtx.fill();
+        arkanoidCtx.fillStyle = cachedBg;
+        arkanoidCtx.font = 'bold 10px Consolas, monospace'; arkanoidCtx.textAlign = 'center';
+        const symbols = {multiball: '3', life: '+', widepaddle: 'W', narrowpaddle: 'N', fireball: 'F', laser: 'L'};
+        arkanoidCtx.fillText(symbols[bonus.type] || '?', bonus.x, bonus.y + 4);
+    }
+    arkanoidCtx.fillStyle = '#ff0000';
+    for (let i = 0; i < arkanoidLasers.length; i++) { const laser = arkanoidLasers[i]; arkanoidCtx.fillRect(laser.x - 1, laser.y, 3, 10); }
+    arkanoidCtx.fillStyle = cachedFg;
+    arkanoidCtx.fillRect(arkanoidPaddleX, ARK_H - PADDLE_H, arkanoidPaddleW, PADDLE_H);
+    if (arkanoidLaser) { arkanoidCtx.fillStyle = cachedFg; arkanoidCtx.fillRect(arkanoidPaddleX + 2, ARK_H - PADDLE_H - 4, 5, 8); arkanoidCtx.fillRect(arkanoidPaddleX + arkanoidPaddleW - 7, ARK_H - PADDLE_H - 4, 5, 8); }
+    for (let i = 0; i < arkanoidBalls.length; i++) {
+        const ball = arkanoidBalls[i];
+        arkanoidCtx.fillStyle = arkanoidFireBall ? '#ff6600' : cachedFg;
+        arkanoidCtx.beginPath(); arkanoidCtx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2); arkanoidCtx.fill();
+        arkanoidCtx.fillStyle = cachedBg;
+        arkanoidCtx.beginPath(); arkanoidCtx.arc(ball.x - ball.radius * 0.3, ball.y - ball.radius * 0.3, ball.radius * 0.3, 0, Math.PI * 2); arkanoidCtx.fill();
+    }
+}
+function gameOverArkanoid(won) {
+    arkanoidStarted = false;
+    if (arkanoidAnimationId) { cancelAnimationFrame(arkanoidAnimationId); arkanoidAnimationId = null; }
+    arkanoidPaddleDir = null; arkanoidPaused = false;
+    if (arkanoidFireTimer) { clearTimeout(arkanoidFireTimer); arkanoidFireTimer = null; }
+    if (arkanoidLaserTimer) { clearTimeout(arkanoidLaserTimer); arkanoidLaserTimer = null; }
+    if (arkanoidWideTimer) { clearTimeout(arkanoidWideTimer); arkanoidWideTimer = null; }
+    if (arkanoidNarrowTimer) { clearTimeout(arkanoidNarrowTimer); arkanoidNarrowTimer = null; }
+    updatePauseIcon('pauseBtnArkanoid', arkanoidPaused);
+    if (won) sndVictory(); else sndDeath();
+    saveBest('best_arkanoid', arkanoidScore);
+    if (won || arkanoidLives <= 0) Save.remove('arkanoid_state');
+    document.getElementById('arkanoidTitle').textContent = won ? 'Победа!' : 'Игра окончена!';
+    document.getElementById('arkanoidMessage').textContent = won ? 'Все 15 уровней пройдены! Счёт: ' + arkanoidScore : 'Счёт: ' + arkanoidScore;
+    document.getElementById('arkanoidReviveBtn').style.display = won ? 'none' : 'block';
+    document.getElementById('arkanoidNextBtn').style.display = 'none';
+    document.getElementById('arkanoidRestartBtn').style.display = 'inline-block';
+    document.getElementById('gameOverArkanoid').classList.add('show');
+    updateBestDisplay('arkanoid');
+}
+
+// ============ SNOOP FROGG ============
+const FROG_W = 30, FROG_H = 24;
+const FROG_CW = 360, FROG_CH = 450;
+const FROG_SPRITE_SIZE = 44;
+const FROG_SPRITE_CX = FROG_SPRITE_SIZE / 2;
+const FROG_SPRITE_CY = FROG_SPRITE_SIZE / 2;
+let frogCanvas, frogCtx;
+let frogBg = '#000', frogFg = '#fff', frogStrokeColor = '#888', frogIsInverse = false;
+let frogSprites = { closed: null, open: null };
+const JUMP_HEIGHT = 188, BASE_TIME = 42, SPEED_MAX = 1.3, SPEED_HEIGHT = 3000;
+const FROG_MOVE_SPEED = 6, PLATFORM_W = 60, PLATFORM_H = 10;
+const FROG_HITBOX_W = FROG_W * 0.92, PLATFORM_HITBOX_MULT = 1.04;
+const SAFE_ZONE = 2 * FROG_CH, SCORE_PER_HEIGHT = 5;
+const SNAP_FORGIVE = PLATFORM_H * 0.10, BREAK_TIMER = 30;
+const PROPELLER_ENEMY_PENALTY = 0.3;
+const FLY_ATTRACT_DIST = FROG_W * 1.5, FLY_SUCK_DURATION = 18, MOUTH_OPEN_TIME = 24;
+const MAX_LIVES = 3, BONUS_PICKUP_RADIUS = 25;
+const PROPELLER_SPEED = 4, ROCKET_SPEED = 14;
+const SNAKE_SHOOT_INTERVAL = 2.0, SNAKE_AIM_TIME = 0.5;
+const SNAKE_BALL_SPEED = 250, SNAKE_BALL_RADIUS = 5;
+const FROG_UNLOCK = { moving: 225, breakable: 525, spring: 150, propeller: 375, shield: 750, rocket: 1125, fly: 600, rat: 600, bird: 975, hedgehog: 1125, snake: 3000 };
+let frog = { x: FROG_CW / 2, y: FROG_CH - 100, vx: 0, vy: 0, facing: 1 };
+let frogPlatforms = [], frogProjectiles = [], frogEnemies = [], frogSnakeBalls = [], frogParticles = [];
+let frogCameraY = 0, frogCameraTargetY = 0, frogTopPlatformY = FROG_CH;
+let frogScore = 0, frogMaxHeight = 0, frogLevel = 1, frogLives = 1;
+let frogStartLevel = 1, frogStartHeight = 0;
+let frogPaused = false, frogGameStarted = false, frogGameOver = false;
+let frogIsShooting = false, frogShootTimer = 0, frogMoveDir = null;
+let frogLastTime = 0, frogAwaitingRespawn = false, frogMouthOpenTimer = 0;
+let frogShootKeyPressed = false, frogShootTouchPressed = false, frogAnimationId = null;
+let frogActiveBonus = null, frogBonusTimer = 0;
+let frogShieldActive = false, frogShieldTimer = 0;
+let cachedPhysics = null, cachedPhysicsHeight = -1;
+let frogSpriteCache = { moving: null, breakable: null, bonus: { spring: null, shield: null, rocket: null, fly: null } };
+function getFrogSpeedFactor() { const t = Math.min(1, frogMaxHeight / SPEED_HEIGHT); return 1 + t * (SPEED_MAX - 1); }
+function getFrogPhysics() {
+    if (cachedPhysicsHeight === frogMaxHeight && cachedPhysics) return cachedPhysics;
+    const s = getFrogSpeedFactor(); const t = BASE_TIME / s;
+    const v = 2 * JUMP_HEIGHT / t; const g = 2 * JUMP_HEIGHT / (t * t);
+    cachedPhysics = { v, g }; cachedPhysicsHeight = frogMaxHeight; return cachedPhysics;
+}
+function killEnemy(e) {
+    if (e.dead) return;
+    e.dead = true; sndHit();
+    for (let k = 0; k < 6; k++) frogParticles.push({ x: e.x, y: e.y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4, life: 20 });
+}
+function updateFrogColors() {
+    const styles = getComputedStyle(document.body);
+    frogBg = styles.getPropertyValue('--bg').trim() || '#000';
+    frogFg = styles.getPropertyValue('--text').trim() || '#fff';
+    const theme = document.body.getAttribute('data-theme');
+    frogIsInverse = (theme === 'inverse' || theme === 'yellow');
+    frogStrokeColor = frogIsInverse ? '#000' : '#888';
+}
+function createFrogSprite(mouthOpen) {
+    const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    const c = document.createElement('canvas');
+    c.width = FROG_SPRITE_SIZE * DPR; c.height = FROG_SPRITE_SIZE * DPR;
+    const g = c.getContext('2d', { alpha: true }); g.scale(DPR, DPR);
+    const cx = FROG_SPRITE_CX, cy = FROG_SPRITE_CY;
+    const bodyW = 14, bodyH = 12, LINE_WIDTH = 3;
+    g.beginPath(); g.ellipse(cx, cy, bodyW, bodyH, 0, 0, Math.PI * 2);
+    if (!frogIsInverse) { g.fillStyle = '#fff'; g.fill(); }
+    g.strokeStyle = frogStrokeColor; g.lineWidth = LINE_WIDTH; g.stroke();
+    const headOffsetY = mouthOpen ? -3 : 0;
+    const headY = cy - 8 + headOffsetY;
+    const eyeR = 5, eyeLX = cx - 5, eyeRX = cx + 5, eyeY = headY - 4;
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(eyeLX, eyeY, eyeR - 0.5, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(eyeRX, eyeY, eyeR - 0.5, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = frogStrokeColor; g.lineWidth = LINE_WIDTH;
+    g.beginPath(); g.arc(eyeLX, eyeY, eyeR, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(eyeRX, eyeY, eyeR, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = frogStrokeColor;
+    g.beginPath(); g.arc(eyeLX, eyeY, 2, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(eyeRX, eyeY, 2, 0, Math.PI * 2); g.fill();
+    if (!mouthOpen) {
+        const arcHalfWidthTop = 4, arcHalfWidthBottom = 3.5;
+        const shiftAbove = -3.5, shiftBelow = 1.5;
+        function ellipseTopY(x) { const dx = (x - cx) / bodyW; const dySq = Math.max(0, 1 - dx * dx); return cy - bodyH * Math.sqrt(dySq); }
+        function drawArc(ex, shiftY, halfWidth) {
+            const x1 = ex - halfWidth, x2 = ex + halfWidth, steps = 10;
+            g.beginPath(); g.moveTo(x1, ellipseTopY(x1) + shiftY);
+            for (let i = 1; i <= steps; i++) { const x = x1 + (x2 - x1) * (i / steps); g.lineTo(x, ellipseTopY(x) + shiftY); }
+            g.stroke();
+        }
+        g.strokeStyle = frogStrokeColor; g.lineWidth = LINE_WIDTH;
+        drawArc(eyeLX, shiftAbove, arcHalfWidthTop); drawArc(eyeRX, shiftAbove, arcHalfWidthTop);
+        drawArc(eyeLX, shiftBelow, arcHalfWidthBottom); drawArc(eyeRX, shiftBelow, arcHalfWidthBottom);
+    }
+    if (mouthOpen) { g.fillStyle = frogStrokeColor; g.beginPath(); g.arc(cx, headY + 10, 6, 0, Math.PI * 2); g.fill(); }
+    else {
+        g.strokeStyle = frogStrokeColor; g.lineWidth = LINE_WIDTH;
+        g.beginPath(); g.moveTo(cx - 6, headY + 6); g.quadraticCurveTo(cx, headY + 8.5, cx + 6, headY + 6); g.stroke();
+    }
+    return c;
+}
+function frogRegenerateSprites() {
+    updateFrogColors();
+    frogSprites.closed = createFrogSprite(false);
+    frogSprites.open = createFrogSprite(true);
+    frogSpriteCache.moving = null; frogSpriteCache.breakable = null;
+    frogSpriteCache.bonus.spring = null; frogSpriteCache.bonus.shield = null;
+    frogSpriteCache.bonus.rocket = null; frogSpriteCache.bonus.fly = null;
+}
+function getMovingPlatSprite() {
+    if (frogSpriteCache.moving) return frogSpriteCache.moving;
+    const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    const pad = 4; const c = document.createElement('canvas');
+    c.width = (PLATFORM_W + pad * 2) * DPR; c.height = (PLATFORM_H + pad * 2) * DPR;
+    const g = c.getContext('2d', { alpha: true }); g.scale(DPR, DPR); g.translate(pad, pad);
+    g.strokeStyle = frogFg; g.lineWidth = 2;
+    for (let x = 3; x < PLATFORM_W - 3; x += 6) {
+        g.beginPath(); g.moveTo(x, 2); g.lineTo(x + 3, 2); g.stroke();
+        g.beginPath(); g.moveTo(x, PLATFORM_H - 2); g.lineTo(x + 3, PLATFORM_H - 2); g.stroke();
+    }
+    g.beginPath(); g.arc(PLATFORM_H/2, PLATFORM_H/2, PLATFORM_H/2, Math.PI * 0.5, Math.PI * 1.5); g.stroke();
+    g.beginPath(); g.arc(PLATFORM_W - PLATFORM_H/2, PLATFORM_H/2, PLATFORM_H/2, -Math.PI * 0.5, Math.PI * 0.5); g.stroke();
+    frogSpriteCache.moving = { canvas: c, pad, w: PLATFORM_W, h: PLATFORM_H };
+    return frogSpriteCache.moving;
+}
+function getBreakablePlatSprite() {
+    if (frogSpriteCache.breakable) return frogSpriteCache.breakable;
+    const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    const pad = 4; const c = document.createElement('canvas');
+    c.width = (PLATFORM_W + pad * 2) * DPR; c.height = (PLATFORM_H + pad * 2) * DPR;
+    const g = c.getContext('2d', { alpha: true }); g.scale(DPR, DPR); g.translate(pad, pad);
+    const r = PLATFORM_H / 2;
+    g.beginPath(); g.moveTo(r, 0); g.lineTo(PLATFORM_W - r, 0);
+    g.quadraticCurveTo(PLATFORM_W, 0, PLATFORM_W, r);
+    g.lineTo(PLATFORM_W, PLATFORM_H - r);
+    g.quadraticCurveTo(PLATFORM_W, PLATFORM_H, PLATFORM_W - r, PLATFORM_H);
+    g.lineTo(r, PLATFORM_H);
+    g.quadraticCurveTo(0, PLATFORM_H, 0, PLATFORM_H - r);
+    g.lineTo(0, r); g.quadraticCurveTo(0, 0, r, 0); g.closePath();
+    g.fillStyle = frogFg; g.fill();
+    g.strokeStyle = frogBg; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(PLATFORM_W * 0.3, 1); g.lineTo(PLATFORM_W * 0.4, PLATFORM_H * 0.5); g.lineTo(PLATFORM_W * 0.35, PLATFORM_H * 0.7); g.lineTo(PLATFORM_W * 0.5, PLATFORM_H - 1); g.stroke();
+    frogSpriteCache.breakable = { canvas: c, pad, w: PLATFORM_W, h: PLATFORM_H };
+    return frogSpriteCache.breakable;
+}
+function getBonusSprite(type) {
+    if (frogSpriteCache.bonus[type]) return frogSpriteCache.bonus[type];
+    const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    const S = 28; const pad = 4; const c = document.createElement('canvas');
+    c.width = (S + pad * 2) * DPR; c.height = (S + pad * 2) * DPR;
+    const g = c.getContext('2d', { alpha: true }); g.scale(DPR, DPR); g.translate(pad + S / 2, pad + S / 2);
+    g.strokeStyle = frogFg; g.fillStyle = frogFg; g.lineWidth = 2;
+    if (type === 'spring') {
+        g.beginPath(); g.moveTo(-8, 10); g.lineTo(8, 10); g.stroke();
+        const coils = 3, coilHeight = 6, startY = 10 - coilHeight;
+        for (let i = 0; i < coils; i++) {
+            const cy1 = startY - i * coilHeight;
+            g.beginPath(); g.moveTo(-8, cy1 + coilHeight); g.quadraticCurveTo(-8, cy1 + coilHeight / 2, 0, cy1 + coilHeight / 2); g.quadraticCurveTo(8, cy1 + coilHeight / 2, 8, cy1); g.stroke();
+        }
+        g.beginPath(); g.moveTo(-8, 10 - coils * coilHeight); g.lineTo(8, 10 - coils * coilHeight); g.stroke();
+    } else if (type === 'shield') {
+        g.beginPath(); g.moveTo(0, -9); g.lineTo(8, 0); g.lineTo(0, 9); g.lineTo(-8, 0); g.closePath(); g.stroke();
+        g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(0, -5); g.lineTo(0, 5); g.stroke();
+        g.beginPath(); g.moveTo(-5, 0); g.lineTo(5, 0); g.stroke();
+    } else if (type === 'rocket') {
+        g.beginPath(); g.moveTo(0, -9); g.lineTo(5, 3); g.lineTo(2, 3); g.lineTo(2, 7); g.lineTo(-2, 7); g.lineTo(-2, 3); g.lineTo(-5, 3); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(-3, 7); g.lineTo(0, 12); g.lineTo(3, 7); g.stroke();
+    }
+    frogSpriteCache.bonus[type] = { canvas: c, pad, S };
+    return frogSpriteCache.bonus[type];
+}
+function updateFrogLivesDisplay() {
+    const el = document.getElementById('livesDisplayFrog');
+    if (!el) return;
+    const n = Math.max(0, Math.floor(Number(frogLives)) || 0);
+    el.textContent = '♥'.repeat(n);
+}
+function getFrogDifficultyFactor() { return Math.min(1, frogMaxHeight / 5000); }
+function getFrogMovingChance() { if (frogMaxHeight < FROG_UNLOCK.moving) return 0; return 0.10 + getFrogDifficultyFactor() * 0.15; }
+function getFrogBreakableChance() { if (frogMaxHeight < FROG_UNLOCK.breakable) return 0; return 0.10 + getFrogDifficultyFactor() * 0.20; }
+function getFrogGapRange() { const f = getFrogDifficultyFactor(); return { min: 50 + f * 45, max: 60 + f * 65 }; }
+function getFrogRatChance() { if (frogMaxHeight < FROG_UNLOCK.rat) return 0; return 0.04 + getFrogDifficultyFactor() * 0.06; }
+function getFrogBirdChance() { if (frogMaxHeight < FROG_UNLOCK.bird) return 0; return 0.05 + getFrogDifficultyFactor() * 0.10; }
+function getFrogHedgehogChance() { if (frogMaxHeight < FROG_UNLOCK.hedgehog) return 0; return 0.03 + getFrogDifficultyFactor() * 0.05; }
+function getFrogSnakeChance() { if (frogMaxHeight < FROG_UNLOCK.snake) return 0; return 0.02 + getFrogDifficultyFactor() * 0.03; }
+function frogPickBonus() {
+    const bonuses = [];
+    if (frogMaxHeight >= FROG_UNLOCK.spring) bonuses.push('spring');
+    if (frogMaxHeight >= FROG_UNLOCK.propeller) bonuses.push('propeller');
+    if (frogMaxHeight >= FROG_UNLOCK.shield) bonuses.push('shield');
+    if (frogMaxHeight >= FROG_UNLOCK.rocket) bonuses.push('rocket');
+    if (frogMaxHeight >= FROG_UNLOCK.fly) bonuses.push('fly');
+    if (bonuses.length === 0) return null;
+    if (Math.random() > 0.15) return null;
+    return bonuses[Math.floor(Math.random() * bonuses.length)];
+}
+function frogCanPickBonus(active, target) {
+    if (!active || active === 'spring') return true;
+    if (active === 'propeller') return target === 'shield' || target === 'propeller' || target === 'rocket';
+    if (active === 'rocket') return target === 'shield' || target === 'rocket';
+    return true;
+}
+function frogIsFlying() { return frogActiveBonus === 'propeller' || frogActiveBonus === 'rocket'; }
+function frogApplyBonus(bonus) {
+    if (bonus === 'fly') return;
+    if (bonus === 'shield') { sndShield(); frogShieldActive = true; frogShieldTimer = 600; return; }
+    if (bonus === 'propeller') {
+        stopRocketSound();
+        sndBonus();
+        frogActiveBonus = 'propeller';
+        frogBonusTimer = 300;
+        startPropellerSound();
+        return;
+    }
+    if (bonus === 'spring') { sndSpring(); frogActiveBonus = bonus; frogBonusTimer = 0.1; const { v } = getFrogPhysics(); frog.vy = -v * 1.6; return; }
+    if (bonus === 'rocket') {
+        stopPropellerSound();
+        sndBonus();
+        frogActiveBonus = bonus;
+        frogBonusTimer = 300;
+        startRocketSound();
+        return;
+    }
+    frogActiveBonus = bonus;
+}
+function frogCreatePlatform(px, py, mode) {
+    const plat = { x: px, y: py, w: PLATFORM_W, h: PLATFORM_H, type: 'normal', vx: 0, broken: false, breakTimer: 0, bonus: null, flyState: null, flyTimer: 0, flyStart: null };
+    if (mode === 'mixed') {
+        const movingChance = getFrogMovingChance();
+        const breakableChance = getFrogBreakableChance();
+        const r = Math.random();
+        if (r < movingChance) plat.type = 'moving';
+        else if (r < movingChance + breakableChance) plat.type = 'breakable';
+        if (plat.type === 'moving') plat.vx = Math.random() < 0.5 ? -1 : 1;
+    }
+    frogPlatforms.push(plat);
+    if (py < frogTopPlatformY) frogTopPlatformY = py;
+    if (mode === 'mixed') {
+        const enemyPenalty = (frogActiveBonus === 'propeller') ? PROPELLER_ENEMY_PENALTY : 1;
+        const ratChance = getFrogRatChance() * enemyPenalty;
+        const birdChance = getFrogBirdChance() * enemyPenalty;
+        const hedgehogChance = getFrogHedgehogChance() * enemyPenalty;
+        const reSitting = Math.random();
+        let sittingEnemy = null;
+        if (reSitting < ratChance) sittingEnemy = 'rat';
+        else if (reSitting < ratChance + hedgehogChance) sittingEnemy = 'hedgehog';
+        if (!sittingEnemy) plat.bonus = frogPickBonus();
+        if (sittingEnemy === 'rat') frogEnemies.push({ type: 'rat', x: px + PLATFORM_W / 2, y: py - 14, hp: 2, platform: plat, offset: PLATFORM_W / 2 });
+        else if (sittingEnemy === 'hedgehog') {
+            const side = Math.random() < 0.5 ? 'left' : 'right';
+            const offset = side === 'left' ? 8 : PLATFORM_W - 8;
+            frogEnemies.push({ type: 'hedgehog', x: px + offset, y: py - 12, platform: plat, offset: offset });
+        }
+        if (Math.random() < birdChance) frogEnemies.push({ type: 'bird', x: Math.random() < 0.5 ? 30 : FROG_CW - 30, y: py + 20, vx: Math.random() < 0.5 ? 1 : -1 });
+        if (!sittingEnemy && frogMaxHeight >= FROG_UNLOCK.snake && Math.random() < getFrogSnakeChance()) {
+            plat.bonus = null;
+            frogEnemies.push({ type: 'snake', x: px + PLATFORM_W / 2, y: py - 12, hp: 2, platform: plat, offset: PLATFORM_W / 2, shootTimer: SNAKE_SHOOT_INTERVAL, aimTimer: 0 });
+        }
+    }
+}
+function initFrog() {
+    frogCanvas = document.getElementById('canvasFrog');
+    const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    frogCanvas.width = FROG_CW * DPR; frogCanvas.height = FROG_CH * DPR;
+    frogCanvas.style.width = FROG_CW + 'px'; frogCanvas.style.height = FROG_CH + 'px';
+    frogCtx = frogCanvas.getContext('2d', { alpha: false }); frogCtx.scale(DPR, DPR);
+    frogRegenerateSprites();
+    const saved = Save.get('frog_state', null);
+    if (saved && saved.platforms && !saved.gameOver) {
+        frog = saved.frog;
+        frogPlatforms = saved.platforms;
+        frogEnemies = saved.enemies || [];
+        frogProjectiles = saved.projectiles || [];
+        frogSnakeBalls = saved.snakeBalls || [];
+        frogParticles = [];
+        frogCameraY = saved.cameraY || 0;
+        frogCameraTargetY = saved.cameraTargetY || frogCameraY;
+        frogTopPlatformY = saved.topPlatformY || FROG_CH;
+        frogScore = saved.score || 0;
+        frogMaxHeight = saved.maxHeight || 0;
+        frogLevel = saved.level || 1;
+        frogLives = saved.lives || 1;
+        frogStartLevel = saved.startLevel || 1;
+        frogStartHeight = saved.startHeight || 0;
+        frogActiveBonus = saved.activeBonus || null;
+        frogBonusTimer = saved.bonusTimer || 0;
+        frogShieldActive = saved.shieldActive || false;
+        frogShieldTimer = saved.shieldTimer || 0;
+        frogPaused = false; frogGameStarted = false; frogGameOver = false;
+        frogIsShooting = false; frogMoveDir = null;
+        frogShootKeyPressed = false; frogShootTouchPressed = false;
+        frogAwaitingRespawn = false; frogMouthOpenTimer = 0;
+        cachedPhysics = null; cachedPhysicsHeight = -1;
+        stopRocketSound(); stopPropellerSound();
+        if (frogActiveBonus === 'rocket') startRocketSound();
+        if (frogActiveBonus === 'propeller') startPropellerSound();
+        document.getElementById('scoreFrog').textContent = frogScore;
+        document.getElementById('levelFrog').textContent = frogLevel;
+        updateFrogLivesDisplay();
+        updatePauseIcon('pauseBtnFrog', frogPaused);
+        document.getElementById('gameOverFrog').classList.remove('show');
+        document.getElementById('pauseFrog').classList.remove('show');
+        if (frogAnimationId) cancelAnimationFrame(frogAnimationId);
+        frogLastTime = performance.now();
+        frogAnimationId = requestAnimationFrame(frogUpdate);
+        updateBestDisplay('frog');
+        return;
+    }
+    frog = { x: FROG_CW / 2, y: FROG_CH - 100, vx: 0, vy: 0, facing: 1 };
+    frogPlatforms = []; frogProjectiles = []; frogEnemies = []; frogSnakeBalls = []; frogParticles = [];
+    frogScore = 0; frogMaxHeight = 0; frogLives = 1;
+    frogLevel = Save.get('frog_level', 1);
+    frogStartLevel = frogLevel;
+    frogStartHeight = (frogStartLevel - 1) * 500;
+    frogPaused = false; frogGameStarted = false; frogGameOver = false;
+    frogIsShooting = false; frogMoveDir = null;
+    frogShootKeyPressed = false; frogShootTouchPressed = false;
+    frogActiveBonus = null; frogBonusTimer = 0;
+    frogShieldActive = false; frogShieldTimer = 0;
+    frogAwaitingRespawn = false; frogMouthOpenTimer = 0;
+    frogCameraY = 0; frogCameraTargetY = 0; frogTopPlatformY = FROG_CH;
+    cachedPhysics = null; cachedPhysicsHeight = -1;
+    stopRocketSound(); stopPropellerSound();
+    if (frogStartLevel > 1) {
+        const startPlatW = 90;
+        const startPlatX = (FROG_CW - startPlatW) / 2;
+        const startPlatY = -frogStartHeight;
+        frogPlatforms.push({ x: startPlatX, y: startPlatY, w: startPlatW, h: PLATFORM_H, type: 'normal', vx: 0, broken: false, breakTimer: 0, bonus: null, flyState: null, flyTimer: 0, flyStart: null });
+        frogTopPlatformY = startPlatY;
+        frog.x = startPlatX + startPlatW / 2 - FROG_W / 2;
+        frog.y = startPlatY - FROG_H;
+        frog.vy = 0;
+        frogCameraY = frog.y - FROG_CH * 0.6;
+        frogCameraTargetY = frogCameraY;
+        while (frogTopPlatformY > startPlatY - FROG_CH * 2) {
+            const gap = getFrogGapRange();
+            frogTopPlatformY -= gap.min + Math.random() * (gap.max - gap.min);
+            const px = Math.random() * (FROG_CW - PLATFORM_W);
+            frogCreatePlatform(px, frogTopPlatformY, 'mixed');
+        }
+    } else {
+        frogPlatforms.push({ x: 0, y: FROG_CH - 60, w: FROG_CW, h: 12, type: 'normal_flat', broken: false, breakTimer: 0, bonus: null, flyState: null, flyTimer: 0, flyStart: null });
+        frogTopPlatformY = FROG_CH - 60;
+        frog.y = (FROG_CH - 60) - FROG_H;
+        frog.vy = 0;
+        const safeTopY = (FROG_CH - 60) - SAFE_ZONE;
+        while (frogTopPlatformY > safeTopY) {
+            const gap = getFrogGapRange();
+            frogTopPlatformY -= gap.min + Math.random() * (gap.max - gap.min);
+            const px = Math.random() * (FROG_CW - PLATFORM_W);
+            frogCreatePlatform(px, frogTopPlatformY, 'safe');
+        }
+        while (frogTopPlatformY > -FROG_CH) {
+            const gap = getFrogGapRange();
+            frogTopPlatformY -= gap.min + Math.random() * (gap.max - gap.min);
+            const px = Math.random() * (FROG_CW - PLATFORM_W);
+            frogCreatePlatform(px, frogTopPlatformY, 'mixed');
+        }
+    }
+    const startScore = frogStartHeight * SCORE_PER_HEIGHT;
+    frogScore = startScore;
+    document.getElementById('scoreFrog').textContent = frogScore;
+    document.getElementById('levelFrog').textContent = frogLevel;
+    document.getElementById('gameOverFrog').classList.remove('show');
+    document.getElementById('pauseFrog').classList.remove('show');
+    updateFrogLivesDisplay();
+    updatePauseIcon('pauseBtnFrog', frogPaused);
+    if (frogAnimationId) cancelAnimationFrame(frogAnimationId);
+    frogLastTime = performance.now();
+    frogAnimationId = requestAnimationFrame(frogUpdate);
+    updateBestDisplay('frog');
+}
+function saveFrogState() {
+    if (frogGameStarted && !frogGameOver && !frogAwaitingRespawn) {
+        Save.set('frog_state', {
+            frog: frog,
+            platforms: frogPlatforms,
+            enemies: frogEnemies,
+            projectiles: frogProjectiles,
+            snakeBalls: frogSnakeBalls,
+            cameraY: frogCameraY,
+            cameraTargetY: frogCameraTargetY,
+            topPlatformY: frogTopPlatformY,
+            score: frogScore,
+            maxHeight: frogMaxHeight,
+            level: frogLevel,
+            lives: frogLives,
+            startLevel: frogStartLevel,
+            startHeight: frogStartHeight,
+            activeBonus: frogActiveBonus,
+            bonusTimer: frogBonusTimer,
+            shieldActive: frogShieldActive,
+            shieldTimer: frogShieldTimer,
+            gameOver: false
+        });
+    }
+}
+function restartFrog() {
+    Save.set('frog_level', 1);
+    Save.remove('frog_state');
+    frogLevel = 1;
+    frogStartLevel = 1;
+    frogStartHeight = 0;
+    initFrog();
+}
+function tryReviveFrog() {
+    if (!canShowAd()) {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+        return;
+    }
+    showAd().then(() => {
+        markAdShown();
+        frogLives = 1;
+        frogGameOver = false;
+        frogPaused = false;
+        frogActiveBonus = null;
+        frogShieldActive = false;
+        frogSnakeBalls = [];
+        frogAwaitingRespawn = true;
+        document.getElementById('gameOverFrog').classList.remove('show');
+        document.getElementById('livesDisplayFrog').textContent = '♥'.repeat(frogLives);
+    }).catch(() => {
+        showModal('Реклама недоступна', [{ text: 'ОК', callback: null }]);
+    });
+}
+function stopFrogGame() {
+    frogGameStarted = false; frogPaused = false; frogAwaitingRespawn = false;
+    stopRocketSound(); stopPropellerSound();
+    if (frogAnimationId) { cancelAnimationFrame(frogAnimationId); frogAnimationId = null; }
+}
+function frogStartMove(dir) {
+    initAudio();
+    if (frogAwaitingRespawn) { frogRespawnContinue(); return; }
+    frogGameStarted = true;
+    frogMoveDir = dir;
+    frog.facing = dir === 'left' ? -1 : 1;
+}
+function frogStopMove() { frogMoveDir = null; }
+function frogShoot() {
+    if (frogAwaitingRespawn) { frogRespawnContinue(); return; }
+    frogGameStarted = true;
+    if (frogIsShooting) return;
+    frogIsShooting = true; frogShootTimer = 8;
+    sndShoot();
+    const centerX = frog.x + FROG_W / 2;
+    const headTopY = frog.y - 2;
+    frogProjectiles.push({ x: centerX, y: headTopY, vy: -10, r: 4 });
+}
+function frogRespawnContinue() {
+    frogAwaitingRespawn = false;
+    const { v } = getFrogPhysics();
+    frog.vy = -v; frogGameStarted = true;
+}
+function frogIsPlatformOccupied(plat) {
+    for (let i = 0; i < frogEnemies.length; i++) {
+        const e = frogEnemies[i];
+        if (e.dead) continue;
+        if (e.platform === plat && (e.type === 'hedgehog' || e.type === 'rat' || e.type === 'snake')) return true;
+    }
+    return false;
+}
+function frogHandleDeath() {
+    if (frogAwaitingRespawn || frogGameOver) return;
+    frogLives--;
+    if (frogLives < 0) frogLives = 0;
+    updateFrogLivesDisplay();
+    sndDeath();
+    stopRocketSound(); stopPropellerSound();
+    if (frogLives <= 0) { 
+        frogPaused = true;
+        frogEndGame();
+        return;
+    }
+    frogEnemies = frogEnemies.filter(e => !e.dead);
+    const visiblePlats = frogPlatforms
+        .filter(p => !p.broken && p.type !== 'normal_flat' && p.y - frogCameraY >= 0 && p.y - frogCameraY <= FROG_CH)
+        .sort((a, b) => b.y - a.y);
+    let respawnPlat = null;
+    for (let i = 0; i < visiblePlats.length; i++) {
+        if (!frogIsPlatformOccupied(visiblePlats[i])) { respawnPlat = visiblePlats[i]; break; }
+    }
+    if (!respawnPlat && visiblePlats.length > 0) respawnPlat = visiblePlats[0];
+    if (!respawnPlat) {
+        let lowestY = -Infinity;
+        for (let i = 0; i < frogPlatforms.length; i++) {
+            const p = frogPlatforms[i];
+            if (p.broken) continue;
+            if (p.y > lowestY) { lowestY = p.y; respawnPlat = p; }
+        }
+    }
+    if (respawnPlat) { frog.x = respawnPlat.x + respawnPlat.w / 2 - FROG_W / 2; frog.y = respawnPlat.y - FROG_H; }
+    else { frog.x = FROG_CW / 2; frog.y = FROG_CH - 100; }
+    frog.vx = 0; frog.vy = 0; frogMoveDir = null;
+    frogActiveBonus = null; frogBonusTimer = 0;
+    frogShieldActive = false; frogShieldTimer = 0;
+    frogMouthOpenTimer = 0;
+    frogSnakeBalls = [];
+    frogAwaitingRespawn = true;
+}
+function toggleFrogPause() {
+    if (!frogGameStarted || frogGameOver) return;
+    if (frogAwaitingRespawn) return;
+    frogPaused = !frogPaused;
+    document.getElementById('pauseFrog').classList.toggle('show', frogPaused);
+    updatePauseIcon('pauseBtnFrog', frogPaused);
+    if (frogPaused) { sndPause(); stopRocketSound(); stopPropellerSound(); }
+    else {
+        frogLastTime = performance.now();
+        if (frogAnimationId) cancelAnimationFrame(frogAnimationId);
+        frogAnimationId = requestAnimationFrame(frogUpdate);
+        sndUnpause();
+        if (frogActiveBonus === 'rocket') startRocketSound();
+        if (frogActiveBonus === 'propeller') startPropellerSound();
+    }
+}
+function frogGeneratePlatforms() {
+    while (frogTopPlatformY > frogCameraY - FROG_CH) {
+        const gap = getFrogGapRange();
+        frogTopPlatformY -= gap.min + Math.random() * (gap.max - gap.min);
+        const px = Math.random() * (FROG_CW - PLATFORM_W);
+        frogCreatePlatform(px, frogTopPlatformY, 'mixed');
+    }
+}
+function frogUpdate(timestamp) {
+    if (frogPaused || frogGameOver) {
+        frogLastTime = timestamp;
+        frogAnimationId = requestAnimationFrame(frogUpdate);
+        return;
+    }
+    const rawDt = timestamp - frogLastTime;
+    const dt = Math.min(rawDt / 16.67, 1.2);
+    frogLastTime = timestamp;
+    if (frogActiveBonus) {
+        frogBonusTimer -= dt;
+        if (frogBonusTimer <= 0) {
+            if (frogActiveBonus === 'rocket') stopRocketSound();
+            if (frogActiveBonus === 'propeller') stopPropellerSound();
+            frogActiveBonus = null;
+        }
+    }
+    if (frogShieldActive) { frogShieldTimer -= dt; if (frogShieldTimer <= 0) frogShieldActive = false; }
+    if (frogMouthOpenTimer > 0) frogMouthOpenTimer -= dt;
+    if (frogGameStarted && !frogAwaitingRespawn) {
+        const steps = Math.max(1, Math.ceil(dt));
+        const stepDt = dt / steps;
+        for (let s = 0; s < steps; s++) frogPhysicsStep(stepDt);
+        frogGeneratePlatforms();
+    }
+    for (let i = 0; i < frogParticles.length; i++) {
+        const p = frogParticles[i];
+        p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+    }
+    frogParticles = frogParticles.filter(p => p.life > 0);
+    const screenY = frog.y - frogCameraY;
+    const targetScreenY = FROG_CH * 0.6;
+    if (screenY < targetScreenY) frogCameraTargetY = frog.y - targetScreenY;
+    let lerpBase = 0.001;
+    if (frogActiveBonus === 'rocket') lerpBase = Math.pow(0.001, ROCKET_SPEED / PROPELLER_SPEED);
+    const lerpFactor = 1 - Math.pow(lerpBase, dt / 60);
+    frogCameraY += (frogCameraTargetY - frogCameraY) * lerpFactor;
+    const currentHeight = Math.max(0, Math.floor((-frogCameraY - frogStartHeight) / 10));
+    if (currentHeight > frogMaxHeight) {
+        frogMaxHeight = currentHeight;
+        frogScore = (frogStartHeight + frogMaxHeight) * SCORE_PER_HEIGHT;
+        document.getElementById('scoreFrog').textContent = frogScore;
+        updateBestDisplay('frog');
+    }
+    const newLevel = frogStartLevel + Math.floor(frogMaxHeight / 500);
+    if (newLevel !== frogLevel) {
+        frogLevel = newLevel;
+        Save.set('frog_level', frogLevel);
+        document.getElementById('levelFrog').textContent = frogLevel;
+    }
+    if (frogIsShooting) { frogShootTimer -= dt; if (frogShootTimer <= 0) frogIsShooting = false; }
+    frogDraw();
+    frogAnimationId = requestAnimationFrame(frogUpdate);
+}
+function frogPhysicsStep(dt) {
+    if (frogGameOver || frogAwaitingRespawn) return;
+    const { v, g } = getFrogPhysics();
+    for (let i = 0; i < frogEnemies.length; i++) {
+        const e = frogEnemies[i];
+        if (e.type !== 'snake' || e.dead) continue;
+        if (e.platform && e.platform.broken) { e.dead = true; continue; }
+        e.shootTimer -= dt / 60;
+        if (e.shootTimer <= 0 && e.aimTimer <= 0) e.aimTimer = SNAKE_AIM_TIME;
+        if (e.aimTimer > 0) {
+            e.aimTimer -= dt / 60;
+            if (e.aimTimer <= 0) {
+                const headX = e.x; const headY = e.y - 20;
+                const targetX = frog.x + FROG_W / 2;
+                const targetY = frog.y + FROG_H / 2;
+                const dx = targetX - headX; const dy = targetY - headY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) frogSnakeBalls.push({ x: headX, y: headY, vx: (dx / dist) * SNAKE_BALL_SPEED, vy: (dy / dist) * SNAKE_BALL_SPEED, r: SNAKE_BALL_RADIUS });
+                e.shootTimer = SNAKE_SHOOT_INTERVAL;
+            }
+        }
+    }
+    for (let i = 0; i < frogSnakeBalls.length; i++) {
+        const ball = frogSnakeBalls[i];
+        ball.x += ball.vx * dt / 60; ball.y += ball.vy * dt / 60;
+    }
+    frogSnakeBalls = frogSnakeBalls.filter(b => b.x > -20 && b.x < FROG_CW + 20 && b.y > frogCameraY - 20 && b.y < frogCameraY + FROG_CH + 20);
+    if (frogActiveBonus === 'rocket') { frog.vy = -ROCKET_SPEED; frog.vx *= 0.95; }
+    else if (frogActiveBonus === 'propeller') {
+        if (frog.vy < 0) {
+            if (frog.vy < -PROPELLER_SPEED) { frog.vy += g * dt; if (frog.vy > -PROPELLER_SPEED) frog.vy = -PROPELLER_SPEED; }
+            else { frog.vy -= g * dt; if (frog.vy < -PROPELLER_SPEED) frog.vy = -PROPELLER_SPEED; }
+        } else { frog.vy -= 0.35 * dt; if (frog.vy < -PROPELLER_SPEED) frog.vy = -PROPELLER_SPEED; }
+    } else frog.vy += g * dt;
+    if (frogMoveDir === 'left') frog.vx = -FROG_MOVE_SPEED;
+    else if (frogMoveDir === 'right') frog.vx = FROG_MOVE_SPEED;
+    else frog.vx *= Math.pow(0.8, dt);
+    const prevY = frog.y;
+    frog.x += frog.vx * dt; frog.y += frog.vy * dt;
+    const frogCenterX = frog.x + FROG_W / 2;
+    if (frogCenterX < 0) frog.x += FROG_CW;
+    else if (frogCenterX > FROG_CW) frog.x -= FROG_CW;
+    const frogCX = frog.x + FROG_W / 2;
+    const frogCY = frog.y + FROG_H / 2;
+    const flyTopY = frog.y - 100, flyBottomY = frog.y + FROG_H + 100;
+    for (let i = 0; i < frogPlatforms.length; i++) {
+        const p = frogPlatforms[i];
+        if (p.bonus === 'fly') {
+            if (p.y + p.h < flyTopY || p.y > flyBottomY) continue;
+            const flyX = p.x + p.w / 2, flyY = p.y - 12;
+            const dx = frogCX - flyX, dy = frogCY - flyY;
+            if (dx * dx + dy * dy < FLY_ATTRACT_DIST * FLY_ATTRACT_DIST) {
+                p.bonus = null; p.flyState = 'sucked';
+                p.flyStart = { x: flyX, y: flyY }; p.flyTimer = 0;
+                frogMouthOpenTimer = MOUTH_OPEN_TIME;
+            }
+        } else if (p.flyState === 'sucked') {
+            p.flyTimer += dt * 1.5;
+            if (p.flyTimer >= FLY_SUCK_DURATION) {
+                p.flyState = 'eaten'; p.bonus = null;
+                sndEat();
+                if (frogLives < MAX_LIVES) { frogLives++; updateFrogLivesDisplay(); }
+            }
+        }
+    }
+    for (let i = 0; i < frogPlatforms.length; i++) {
+        const p = frogPlatforms[i];
+        if (p.broken) continue;
+        if (!p.bonus || p.bonus === 'fly' || p.bonus === 'spring') continue;
+        if (p.y + p.h < frog.y - 50 || p.y > frog.y + FROG_H + 50) continue;
+        const bonusX = p.x + p.w / 2, bonusY = p.y - 9;
+        const dx = frogCX - bonusX, dy = frogCY - bonusY;
+        if (dx * dx + dy * dy < BONUS_PICKUP_RADIUS * BONUS_PICKUP_RADIUS) {
+            if (frogCanPickBonus(frogActiveBonus, p.bonus)) { frogApplyBonus(p.bonus); p.bonus = null; }
+        }
+    }
+    const colTopY = frog.y - 20, colBottomY = frog.y + FROG_H + 20;
+    for (let i = 0; i < frogPlatforms.length; i++) {
+        const p = frogPlatforms[i];
+        if (p.broken) continue;
+        if (p.y + p.h < colTopY || p.y > colBottomY) continue;
+        const frogHitCX = frog.x + FROG_W / 2;
+        const frogHitL = frogHitCX - FROG_HITBOX_W / 2, frogHitR = frogHitCX + FROG_HITBOX_W / 2;
+        const platHitCX = p.x + p.w / 2, platHitW = p.w * PLATFORM_HITBOX_MULT;
+        const platHitL = platHitCX - platHitW / 2, platHitR = platHitCX + platHitW / 2;
+        if (!(frogHitR > platHitL && frogHitL < platHitR)) continue;
+        if (frogIsFlying()) {
+            if (!p.bonus) continue;
+            if (p.bonus === 'fly') continue;
+            if (!frogCanPickBonus(frogActiveBonus, p.bonus)) continue;
+            if (frog.y + FROG_H >= p.y && frog.y <= p.y + p.h) { frogApplyBonus(p.bonus); p.bonus = null; break; }
+            continue;
+        }
+        const frogBottom = frog.y + FROG_H;
+        const prevBottom = prevY + FROG_H;
+        const fallingHit = frog.vy > 0 && prevBottom <= p.y && frogBottom >= p.y;
+        let jumpingHit = frog.vy < 0 && frog.y < p.y && frogBottom < p.y && frogBottom >= p.y - SNAP_FORGIVE;
+        if (jumpingHit && p.bonus && (p.bonus === 'rocket' || p.bonus === 'propeller')) jumpingHit = false;
+        if (fallingHit || jumpingHit) {
+            const isSpring = p.bonus === 'spring';
+            if (p.bonus && p.bonus !== 'fly' && !isSpring && !frogCanPickBonus(frogActiveBonus, p.bonus)) continue;
+            frog.y = p.y - FROG_H;
+            sndJump();
+            let bounced = false;
+            if (p.bonus && p.bonus !== 'fly') {
+                frogApplyBonus(p.bonus); p.bonus = null;
+                if (frog.vy >= 0) frog.vy = -v;
+                bounced = true;
+            } else { frog.vy = -v; bounced = true; }
+            if (p.type === 'breakable' && bounced) { p.broken = true; p.breakTimer = BREAK_TIMER; }
+            break;
+        }
+    }
+    if (frog.y - frogCameraY > FROG_CH + 50) { frogHandleDeath(); return; }
+    for (let i = 0; i < frogPlatforms.length; i++) {
+        const p = frogPlatforms[i];
+        if (p.type === 'moving' && !p.broken) {
+            p.x += p.vx * dt;
+            if (p.x < 0) { p.x = 0; p.vx *= -1; }
+            if (p.x + p.w > FROG_CW) { p.x = FROG_CW - p.w; p.vx *= -1; }
+        }
+        if (p.broken && p.breakTimer > 0) p.breakTimer -= dt;
+    }
+    frogPlatforms = frogPlatforms.filter(p => !(p.broken && p.breakTimer <= 0) && p.y - frogCameraY < FROG_CH + 100);
+    for (let i = 0; i < frogProjectiles.length; i++) frogProjectiles[i].y += frogProjectiles[i].vy * dt;
+    frogProjectiles = frogProjectiles.filter(pr => pr.y - frogCameraY > -50);
+    for (let i = 0; i < frogEnemies.length; i++) {
+        const e = frogEnemies[i];
+        if (e.type === 'bird') {
+            e.x += e.vx * dt;
+            if (e.x < 20) { e.x = 20; e.vx *= -1; }
+            if (e.x > FROG_CW - 20) { e.x = FROG_CW - 20; e.vx *= -1; }
+        }
+        if ((e.type === 'hedgehog' || e.type === 'rat' || e.type === 'snake') && e.platform) {
+            if (e.platform.broken) e.dead = true;
+            else {
+                const off = e.offset !== undefined ? e.offset : e.platform.w / 2;
+                e.x = e.platform.x + off;
+                if (e.type === 'rat') e.y = e.platform.y - 14;
+                else e.y = e.platform.y - 12;
+            }
+        }
+    }
+    for (let i = 0; i < frogProjectiles.length; i++) {
+        const pr = frogProjectiles[i];
+        for (let j = 0; j < frogEnemies.length; j++) {
+            const e = frogEnemies[j];
+            if (e.dead) continue;
+            const dx = pr.x - e.x, dy = pr.y - (e.y - 12);
+            if (dx * dx + dy * dy < 24 * 24) {
+                pr.dead = true;
+                if (e.type === 'rat' || e.type === 'snake') { e.hp--; if (e.hp <= 0) killEnemy(e); }
+                else killEnemy(e);
+            }
+        }
+    }
+    frogProjectiles = frogProjectiles.filter(pr => !pr.dead);
+    if (frogActiveBonus !== 'rocket') {
+        for (let i = 0; i < frogSnakeBalls.length; i++) {
+            const ball = frogSnakeBalls[i];
+            const dx = frog.x + FROG_W / 2 - ball.x;
+            const dy = frog.y + FROG_H / 2 - ball.y;
+            if (dx * dx + dy * dy < (FROG_HITBOX_W / 2 + ball.r) * (FROG_HITBOX_W / 2 + ball.r)) {
+                frogSnakeBalls.splice(i, 1);
+                if (frogShieldActive) { i--; continue; }
+                frogHandleDeath();
+                return;
+            }
+        }
+    }
+    for (let i = 0; i < frogEnemies.length; i++) {
+        const e = frogEnemies[i];
+        if (e.dead) continue;
+        const dx = frog.x + FROG_W / 2 - e.x;
+        const dy = frog.y + FROG_H / 2 - (e.y - 12);
+        const hitRadius = e.type === 'rat' ? 24 : (e.type === 'snake' ? 20 : 22);
+        if (dx * dx + dy * dy < hitRadius * hitRadius) {
+            if (e.type === 'snake') {
+                if (frogActiveBonus === 'rocket' || frogShieldActive) { killEnemy(e); continue; }
+                if (frog.vy > 0 && frog.y + FROG_H < e.y - 2) { killEnemy(e); frog.vy = -v * 0.8; }
+                else { frogHandleDeath(); return; }
+                continue;
+            }
+            if (e.type === 'hedgehog') {
+                if (frogActiveBonus === 'rocket' || frogShieldActive) { killEnemy(e); continue; }
+                killEnemy(e); frogHandleDeath(); return;
+            }
+            if (e.type === 'rat') {
+                if (frogActiveBonus === 'rocket' || frogShieldActive) { killEnemy(e); continue; }
+                if (frog.vy > 0 && frog.y + FROG_H < e.y + 6) { killEnemy(e); frog.vy = -v * 0.8; }
+                else { killEnemy(e); frogHandleDeath(); return; }
+            }
+            if (e.type === 'bird') {
+                if (frogActiveBonus === 'rocket' || frogShieldActive) { killEnemy(e); continue; }
+                if (frog.vy > 0 && frog.y + FROG_H < e.y + 8) { killEnemy(e); frog.vy = -v * 0.8; }
+                else { killEnemy(e); frogHandleDeath(); return; }
+            }
+        }
+    }
+    frogEnemies = frogEnemies.filter(e => !e.dead);
+}
+function frogDrawRounded(x, y, w, h, r) {
+    if (r > h / 2) r = h / 2;
+    if (r > w / 2) r = w / 2;
+    frogCtx.beginPath();
+    frogCtx.moveTo(x + r, y);
+    frogCtx.lineTo(x + w - r, y);
+    frogCtx.quadraticCurveTo(x + w, y, x + w, y + r);
+    frogCtx.lineTo(x + w, y + h - r);
+    frogCtx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    frogCtx.lineTo(x + r, y + h);
+    frogCtx.quadraticCurveTo(x, y + h, x, y + h - r);
+    frogCtx.lineTo(x, y + r);
+    frogCtx.quadraticCurveTo(x, y, x + r, y);
+    frogCtx.closePath();
+}
+function frogDrawFly(x, y, now) {
+    const wingAngle = Math.sin(now / 40) * 0.3;
+    frogCtx.save(); frogCtx.translate(x, y);
+    frogCtx.globalAlpha = 0.5; frogCtx.fillStyle = frogFg;
+    frogCtx.save(); frogCtx.rotate(-0.5 + wingAngle);
+    frogCtx.beginPath(); frogCtx.ellipse(-5, -5, 8, 4, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.restore();
+    frogCtx.save(); frogCtx.rotate(0.5 - wingAngle);
+    frogCtx.beginPath(); frogCtx.ellipse(5, -5, 8, 4, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.restore();
+    frogCtx.globalAlpha = 1;
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.ellipse(0, 0, 5, 7, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.strokeStyle = frogBg; frogCtx.lineWidth = 1;
+    frogCtx.beginPath();
+    frogCtx.moveTo(-3, -2); frogCtx.lineTo(3, -2);
+    frogCtx.moveTo(-4, 1); frogCtx.lineTo(4, 1);
+    frogCtx.moveTo(-3, 4); frogCtx.lineTo(3, 4);
+    frogCtx.stroke();
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.arc(0, -9, 4, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogBg;
+    frogCtx.beginPath(); frogCtx.arc(-2, -10, 1.8, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.beginPath(); frogCtx.arc(2, -10, 1.8, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.arc(-2, -10, 0.7, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.beginPath(); frogCtx.arc(2, -10, 0.7, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 1.2;
+    frogCtx.beginPath(); frogCtx.moveTo(-2, -13); frogCtx.quadraticCurveTo(-5, -18, -4, -20); frogCtx.stroke();
+    frogCtx.beginPath(); frogCtx.moveTo(2, -13); frogCtx.quadraticCurveTo(5, -18, 4, -20); frogCtx.stroke();
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.arc(-4, -20, 1, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.beginPath(); frogCtx.arc(4, -20, 1, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.restore();
+}
+function frogDrawHedgehog(e, sy, now) {
+    frogCtx.save(); frogCtx.translate(e.x, sy);
+    const spikes = 11;
+    const spikeStart = -Math.PI * 0.95, spikeEnd = -Math.PI * 0.05;
+    frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 2; frogCtx.lineCap = 'round';
+    for (let i = 0; i < spikes; i++) {
+        const t = i / (spikes - 1);
+        const a = spikeStart + t * (spikeEnd - spikeStart);
+        frogCtx.beginPath();
+        frogCtx.moveTo(Math.cos(a) * 8, Math.sin(a) * 8 * 0.9);
+        frogCtx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14 * 0.9);
+        frogCtx.stroke();
+    }
+    frogCtx.lineCap = 'butt';
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.ellipse(0, 0, 10, 8, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogBg;
+    frogCtx.beginPath(); frogCtx.ellipse(-5, 3, 4, 3.5, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.arc(-8, 3.5, 1.3, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogBg;
+    frogCtx.beginPath(); frogCtx.arc(-2, -1, 2, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.arc(-2, -1, 0.9, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.beginPath(); frogCtx.arc(2, -6, 1.8, 0, Math.PI * 2); frogCtx.fill();
+    for (let i = 0; i < 4; i++) {
+        frogCtx.beginPath(); frogCtx.arc(-6 + i * 4, 7, 1.5, 0, Math.PI * 2); frogCtx.fill();
+    }
+    frogCtx.restore();
+}
+function frogDrawSnake(e, sy, now) {
+    const bodyY = sy - 12;
+    const neckTopY = bodyY - 20;
+    frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 3;
+    const turns = 3, rOuter = 14, rInner = 4, steps = 50;
+    frogCtx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const angle = t * turns * Math.PI * 2;
+        const r = rOuter - t * (rOuter - rInner);
+        const x = e.x + Math.cos(angle) * r;
+        const y = bodyY + Math.sin(angle) * r * 0.7;
+        if (i === 0) frogCtx.moveTo(x, y);
+        else frogCtx.lineTo(x, y);
+    }
+    frogCtx.stroke();
+    frogCtx.fillStyle = frogBg;
+    for (let i = 0; i <= steps; i += 3) {
+        const t = i / steps;
+        const angle = t * turns * Math.PI * 2;
+        const r = rOuter - t * (rOuter - rInner);
+        const x = e.x + Math.cos(angle) * r;
+        const y = bodyY + Math.sin(angle) * r * 0.7;
+        frogCtx.beginPath(); frogCtx.arc(x, y, 1.2, 0, Math.PI * 2); frogCtx.fill();
+    }
+    let headX = e.x, headY = neckTopY, headAngle = -Math.PI / 2;
+    if (e.aimTimer > 0) {
+        const dx = frog.x + FROG_W / 2 - e.x;
+        const dy = frog.y + FROG_H / 2 - neckTopY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+            headAngle = Math.atan2(dy, dx);
+            headX = e.x + (dx / dist) * 6;
+            headY = neckTopY + (dy / dist) * 6;
+        }
+    }
+    frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 3;
+    frogCtx.beginPath();
+    frogCtx.moveTo(e.x, bodyY);
+    frogCtx.quadraticCurveTo(e.x + (headX - e.x) * 0.3, bodyY - 10, headX, headY);
+    frogCtx.stroke();
+    frogCtx.save(); frogCtx.translate(headX, headY); frogCtx.rotate(headAngle + Math.PI / 2);
+    frogCtx.fillStyle = frogFg;
+    frogCtx.beginPath(); frogCtx.ellipse(0, 0, 5, 7, 0, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.fillStyle = frogBg;
+    frogCtx.beginPath(); frogCtx.arc(-2, -2, 1.3, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.beginPath(); frogCtx.arc(2, -2, 1.3, 0, Math.PI * 2); frogCtx.fill();
+    frogCtx.restore();
+    if (e.aimTimer > 0) {
+        const tongueLen = 6 + (SNAKE_AIM_TIME - e.aimTimer) * 20;
+        frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 2;
+        const tx = headX + Math.cos(headAngle) * tongueLen;
+        const ty = headY + Math.sin(headAngle) * tongueLen;
+        frogCtx.beginPath(); frogCtx.moveTo(headX, headY); frogCtx.lineTo(tx, ty); frogCtx.stroke();
+        const perpX = -Math.sin(headAngle), perpY = Math.cos(headAngle);
+        frogCtx.beginPath();
+        frogCtx.moveTo(tx, ty); frogCtx.lineTo(tx + perpX * 2, ty + perpY * 2);
+        frogCtx.moveTo(tx, ty); frogCtx.lineTo(tx - perpX * 2, ty - perpY * 2);
+        frogCtx.stroke();
+    }
+}
+function frogDrawBonus(type, x, y, now) {
+    if (type === 'propeller') {
+        const rot = (now / 150) % (Math.PI * 2);
+        frogCtx.fillStyle = frogFg;
+        frogCtx.beginPath(); frogCtx.arc(x, y, 2.5, 0, Math.PI * 2); frogCtx.fill();
+        frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 3;
+        for (let i = 0; i < 3; i++) {
+            const angle = rot + (i * Math.PI * 2 / 3);
+            frogCtx.beginPath(); frogCtx.moveTo(x, y); frogCtx.lineTo(x + Math.cos(angle) * 9, y + Math.sin(angle) * 9); frogCtx.stroke();
+        }
+        return;
+    }
+    if (type === 'fly') { frogDrawFly(x, y, now); return; }
+    const sprite = getBonusSprite(type);
+    if (sprite) frogCtx.drawImage(sprite.canvas, x - sprite.pad - sprite.S / 2, y - sprite.pad - sprite.S / 2, sprite.S + sprite.pad * 2, sprite.S + sprite.pad * 2);
+}
+function frogDrawSprite(x, y, now) {
+    const cx = x + FROG_W / 2, cy = y + FROG_H / 2, bodyH = 12;
+    if (frogShieldActive) {
+        const pulse = 1 + Math.sin(now / 150) * 0.1;
+        frogCtx.strokeStyle = frogStrokeColor; frogCtx.lineWidth = 2; frogCtx.globalAlpha = 0.7;
+        frogCtx.beginPath(); frogCtx.arc(cx, cy, 22 * pulse, 0, Math.PI * 2); frogCtx.stroke();
+        frogCtx.globalAlpha = 1;
+    }
+    if (frogActiveBonus === 'rocket') {
+        frogCtx.fillStyle = frogStrokeColor;
+        for (let i = 0; i < 3; i++) {
+            const offsetX = (i - 1) * 5;
+            const flickerY = Math.sin(now / 50 + i) * 2;
+            frogCtx.beginPath();
+            frogCtx.moveTo(cx + offsetX - 3, cy + bodyH + 2);
+            frogCtx.lineTo(cx + offsetX, cy + bodyH + 10 + flickerY);
+            frogCtx.lineTo(cx + offsetX + 3, cy + bodyH + 2);
+            frogCtx.closePath(); frogCtx.fill();
+        }
+    }
+    if (frogActiveBonus === 'propeller') {
+        const rot = (now / 80) % (Math.PI * 2);
+        frogCtx.strokeStyle = frogStrokeColor; frogCtx.lineWidth = 2;
+        const propX = cx, propY = cy - bodyH - 12;
+        frogCtx.fillStyle = frogStrokeColor;
+        frogCtx.beginPath(); frogCtx.arc(propX, propY, 2, 0, Math.PI * 2); frogCtx.fill();
+        for (let i = 0; i < 3; i++) {
+            const angle = rot + (i * Math.PI * 2 / 3);
+            frogCtx.beginPath(); frogCtx.moveTo(propX, propY); frogCtx.lineTo(propX + Math.cos(angle) * 10, propY + Math.sin(angle) * 10); frogCtx.stroke();
+        }
+        frogCtx.beginPath(); frogCtx.moveTo(propX, propY); frogCtx.lineTo(propX, cy - bodyH - 2); frogCtx.stroke();
+    }
+    const mouthOpen = frogIsShooting || frogMouthOpenTimer > 0;
+    const sprite = mouthOpen ? frogSprites.open : frogSprites.closed;
+    if (sprite) frogCtx.drawImage(sprite, Math.floor(cx - FROG_SPRITE_CX), Math.floor(cy - FROG_SPRITE_CY), FROG_SPRITE_SIZE, FROG_SPRITE_SIZE);
+}
+function frogDraw() {
+    const now = performance.now();
+    frogCtx.fillStyle = frogBg; frogCtx.fillRect(0, 0, FROG_CW, FROG_CH);
+    const visiblePlatforms = [];
+    for (let i = 0; i < frogPlatforms.length; i++) {
+        const p = frogPlatforms[i]; const sy = p.y - frogCameraY;
+        if (sy >= -30 && sy <= FROG_CH + 30) visiblePlatforms.push({ p, sy });
+    }
+    for (let k = 0; k < visiblePlatforms.length; k++) {
+        const p = visiblePlatforms[k].p, sy = visiblePlatforms[k].sy;
+        if (p.broken) frogCtx.globalAlpha = Math.max(0, p.breakTimer / BREAK_TIMER);
+        if (p.type === 'normal_flat') { frogCtx.fillStyle = frogFg; frogCtx.fillRect(p.x, sy, p.w, p.h); }
+        else if (p.type === 'normal') { frogDrawRounded(p.x, sy, p.w, p.h, p.h / 2); frogCtx.fillStyle = frogFg; frogCtx.fill(); }
+        else if (p.type === 'breakable') { const s = getBreakablePlatSprite(); frogCtx.drawImage(s.canvas, p.x - s.pad, sy - s.pad, s.w + s.pad * 2, s.h + s.pad * 2); }
+        else if (p.type === 'moving') { const s = getMovingPlatSprite(); frogCtx.drawImage(s.canvas, p.x - s.pad, sy - s.pad, s.w + s.pad * 2, s.h + s.pad * 2); }
+        if (p.bonus && !p.broken) frogDrawBonus(p.bonus, p.x + p.w / 2, sy - 9, now);
+        if (p.flyState === 'sucked' && p.flyStart) {
+            const t = Math.min(1, p.flyTimer / FLY_SUCK_DURATION);
+            const mouthX = frog.x + FROG_W / 2;
+            const mouthY = frog.y + FROG_H / 2 - frogCameraY;
+            const fx = p.flyStart.x + (mouthX - p.flyStart.x) * t;
+            const fy = (p.flyStart.y - frogCameraY) + (mouthY - (p.flyStart.y - frogCameraY)) * t;
+            frogDrawFly(fx, fy, now);
+        }
+        frogCtx.globalAlpha = 1;
+    }
+    for (let i = 0; i < frogEnemies.length; i++) {
+        const e = frogEnemies[i];
+        const sy = e.y - frogCameraY;
+        if (sy < -60 || sy > FROG_CH + 60) continue;
+        if (e.type === 'snake') frogDrawSnake(e, sy, now);
+        else if (e.type === 'hedgehog') frogDrawHedgehog(e, sy, now);
+        else if (e.type === 'bird') {
+            frogCtx.fillStyle = frogFg;
+            frogCtx.beginPath(); frogCtx.ellipse(e.x, sy, 10, 6, 0, 0, Math.PI * 2); frogCtx.fill();
+            const wingFlap = Math.sin(now / 100) * 3;
+            frogCtx.beginPath(); frogCtx.moveTo(e.x - 3, sy - 2); frogCtx.lineTo(e.x - 12, sy - 8 - wingFlap); frogCtx.lineTo(e.x - 2, sy - 6); frogCtx.closePath(); frogCtx.fill();
+            frogCtx.beginPath(); frogCtx.moveTo(e.x + 3, sy - 2); frogCtx.lineTo(e.x + 12, sy - 8 - wingFlap); frogCtx.lineTo(e.x + 2, sy - 6); frogCtx.closePath(); frogCtx.fill();
+            frogCtx.beginPath(); frogCtx.moveTo(e.x + (e.vx > 0 ? 10 : -10), sy); frogCtx.lineTo(e.x + (e.vx > 0 ? 15 : -15), sy + 2); frogCtx.lineTo(e.x + (e.vx > 0 ? 10 : -10), sy + 4); frogCtx.closePath(); frogCtx.fill();
+        } else if (e.type === 'rat') {
+            if (e.hp < 2) frogCtx.globalAlpha = 0.5;
+            frogCtx.fillStyle = frogFg; frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 2;
+            frogCtx.beginPath(); frogCtx.ellipse(e.x, sy, 13, 8, 0, 0, Math.PI * 2); frogCtx.fill();
+            const dir = frog.x < e.x ? -1 : 1;
+            frogCtx.beginPath(); frogCtx.ellipse(e.x + dir * 10, sy - 1, 6, 5, 0, 0, Math.PI * 2); frogCtx.fill();
+            frogCtx.fillStyle = frogBg;
+            frogCtx.beginPath(); frogCtx.arc(e.x + dir * 9, sy - 5, 2.5, 0, Math.PI * 2); frogCtx.fill();
+            frogCtx.beginPath(); frogCtx.arc(e.x + dir * 12, sy - 2, 1.5, 0, Math.PI * 2); frogCtx.fill();
+            frogCtx.strokeStyle = frogFg; frogCtx.lineWidth = 2;
+            const tailDir = -dir;
+            frogCtx.beginPath(); frogCtx.moveTo(e.x + tailDir * 12, sy + 2); frogCtx.quadraticCurveTo(e.x + tailDir * 20, sy - 2, e.x + tailDir * 24, sy + 4); frogCtx.stroke();
+            frogCtx.globalAlpha = 1;
+        }
+    }
+    frogCtx.fillStyle = frogFg;
+    for (let i = 0; i < frogSnakeBalls.length; i++) {
+        const ball = frogSnakeBalls[i];
+        frogCtx.beginPath(); frogCtx.arc(ball.x, ball.y - frogCameraY, ball.r, 0, Math.PI * 2); frogCtx.fill();
+    }
+    for (let i = 0; i < frogProjectiles.length; i++) {
+        const pr = frogProjectiles[i];
+        frogCtx.beginPath(); frogCtx.arc(pr.x, pr.y - frogCameraY, pr.r, 0, Math.PI * 2); frogCtx.fill();
+    }
+    for (let i = 0; i < frogParticles.length; i++) {
+        const p = frogParticles[i];
+        frogCtx.globalAlpha = p.life / 20;
+        frogCtx.beginPath(); frogCtx.arc(p.x, p.y - frogCameraY, 2, 0, Math.PI * 2); frogCtx.fill();
+    }
+    frogCtx.globalAlpha = 1;
+    const frogY = frog.y - frogCameraY;
+    if (frogAwaitingRespawn) {
+        const blink = Math.sin(now / 100) > 0 ? 1 : 0.3;
+        frogCtx.globalAlpha = blink;
+    }
+    frogDrawSprite(frog.x, frogY, now);
+    if (frog.x + FROG_W > FROG_CW) frogDrawSprite(frog.x - FROG_CW, frogY, now);
+    else if (frog.x < 0) frogDrawSprite(frog.x + FROG_CW, frogY, now);
+    frogCtx.globalAlpha = 1;
+    if (!frogGameStarted) {
+        frogCtx.fillStyle = frogFg;
+        frogCtx.font = 'bold 16px Consolas, monospace';
+        frogCtx.textAlign = 'center';
+        frogCtx.fillText('Нажми ← → чтобы начать', FROG_CW/2, FROG_CH/2);
+    }
+}
+function frogEndGame() {
+    frogGameOver = true; frogGameStarted = false;
+    frogActiveBonus = null; frogShieldActive = false;
+    stopRocketSound(); stopPropellerSound();
+    sndDeath();
+    saveBest('best_frog', frogScore);
+    Save.remove('frog_state');
+    document.getElementById('finalScoreFrog').textContent = frogScore;
+    document.getElementById('gameOverFrog').classList.add('show');
+    updateBestDisplay('frog');
+    if (frogAnimationId) { cancelAnimationFrame(frogAnimationId); frogAnimationId = null; }
+}
+const frogShootBtn = document.getElementById('frogShootBtn');
+frogShootBtn.addEventListener('touchstart', e => { e.preventDefault(); if (!frogShootTouchPressed) { frogShootTouchPressed = true; frogShoot(); } });
+frogShootBtn.addEventListener('touchend', e => { e.preventDefault(); frogShootTouchPressed = false; });
+frogShootBtn.addEventListener('mousedown', e => { e.preventDefault(); if (!frogShootTouchPressed) { frogShootTouchPressed = true; frogShoot(); } });
+frogShootBtn.addEventListener('mouseup', e => { e.preventDefault(); frogShootTouchPressed = false; });
+frogShootBtn.addEventListener('mouseleave', () => { frogShootTouchPressed = false; });
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        saveAllStatesOnExit();
+    }
+    if (!document.hidden) return;
+    if (document.getElementById('gameFrog').style.display === 'block' && frogGameStarted && !frogGameOver && !frogPaused && !frogAwaitingRespawn) {
+        frogPaused = true;
+        document.getElementById('pauseFrog').classList.add('show');
+        updatePauseIcon('pauseBtnFrog', true);
+    }
+    if (document.getElementById('gameSnake').style.display === 'block' && snakeStarted && !snakeGameOver && !snakePaused) {
+        snakePaused = true;
+        document.getElementById('pauseSnake').classList.add('show');
+        updatePauseIcon('pauseBtnSnake', true);
+    }
+    if (document.getElementById('gameArkanoid').style.display === 'block' && arkanoidStarted && !arkanoidPaused) {
+        arkanoidPaused = true;
+        document.getElementById('pauseArkanoid').classList.add('show');
+        updatePauseIcon('pauseBtnArkanoid', true);
+        arkanoidPaddleDir = null;
+    }
+    if (document.getElementById('gameMahjong').style.display === 'block' && mahjongStarted && !mahjongPaused) {
+        mahjongPaused = true;
+        document.getElementById('pauseMahjong').classList.add('show');
+        updatePauseIcon('pauseBtnMahjong', true);
+    }
+    stopRocketSound();
+    stopPropellerSound();
+});
+document.addEventListener('pagehide', () => {
+    saveAllStatesOnExit();
+});
+
+document.addEventListener('keydown', e => {
+    const key = e.key.toLowerCase();
+    if (document.getElementById('game2048').style.display === 'block') {
+        if (key === 'arrowleft' || key === 'a') { move2048('left'); e.preventDefault(); }
+        if (key === 'arrowright' || key === 'd') { move2048('right'); e.preventDefault(); }
+        if (key === 'arrowup' || key === 'w') { move2048('up'); e.preventDefault(); }
+        if (key === 'arrowdown' || key === 's') { move2048('down'); e.preventDefault(); }
+    }
+    if (document.getElementById('gameSnake').style.display === 'block') {
+        if (key === 'arrowup' || key === 'w') { changeDirection('up'); e.preventDefault(); }
+        if (key === 'arrowdown' || key === 's') { changeDirection('down'); e.preventDefault(); }
+        if (key === 'arrowleft' || key === 'a') { changeDirection('left'); e.preventDefault(); }
+        if (key === 'arrowright' || key === 'd') { changeDirection('right'); e.preventDefault(); }
+        if (key === 'p') { toggleSnakePause(); e.preventDefault(); }
+    }
+    if (document.getElementById('gameArkanoid').style.display === 'block') {
+        if (key === 'arrowleft' || key === 'a') { startPaddle('left'); e.preventDefault(); }
+        if (key === 'arrowright' || key === 'd') { startPaddle('right'); e.preventDefault(); }
+        if (key === 'p') { toggleArkanoidPause(); e.preventDefault(); }
+    }
+    if (document.getElementById('gameFrog').style.display === 'block') {
+        if (key === 'arrowleft' || key === 'a') { frogStartMove('left'); e.preventDefault(); }
+        if (key === 'arrowright' || key === 'd') { frogStartMove('right'); e.preventDefault(); }
+        if (key === 'arrowup' || key === 'w' || key === ' ') {
+            if (!frogShootKeyPressed) { frogShootKeyPressed = true; frogShoot(); }
+            e.preventDefault();
+        }
+        if (key === 'p') { toggleFrogPause(); e.preventDefault(); }
+    }
+});
+document.addEventListener('keyup', e => {
+    const key = e.key.toLowerCase();
+    if (document.getElementById('gameArkanoid').style.display === 'block') {
+        if (key === 'arrowleft' || key === 'a' || key === 'arrowright' || key === 'd') stopPaddle();
+    }
+    if (document.getElementById('gameFrog').style.display === 'block') {
+        if (key === 'arrowleft' || key === 'a' || key === 'arrowright' || key === 'd') frogStopMove();
+        if (key === 'arrowup' || key === 'w' || key === ' ') frogShootKeyPressed = false;
+    }
+});
+
+function applySettings() {
+    const t = Save.get('theme', 'default');
+    if (t && t !== 'default') document.body.setAttribute('data-theme', t);
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+    const s = Save.get('sound', true);
+    soundEnabled = s;
+    if (!s) document.getElementById('soundToggle').classList.add('muted');
+}
+
+if (Save.isTelegram) {
+    document.getElementById('loadingOverlay').classList.add('show');
+    document.getElementById('mainContainer').classList.add('locked');
+}
+Save.init().then(() => {
+    applySettings();
+    updateCachedColors();
+    document.getElementById('loadingOverlay').classList.remove('show');
+    document.getElementById('mainContainer').classList.remove('locked');
+});
+</script>
+</body>
+</html>
